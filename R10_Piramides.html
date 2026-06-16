@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Área y volumen de la pirámide · 3.º ESO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root{
+    --paper:#ECEFF3;
+    --panel:#FFFFFF;
+    --ink:#16243B;
+    --ink-soft:#5A6678;
+    --line:#D8DDE5;
+    --viewport:#0F1E33;
+    --viewport-grid:#243a59;
+    /* Código de color de las magnitudes (mismo color en 3D, desarrollo y fórmulas) */
+    --c-a:#1F9E8E;     /* lado de la base */
+    --c-h:#3B6FE0;     /* altura */
+    --c-ap:#EA7D2B;    /* apotema lateral (protagonista) */
+    --c-m:#9B5DE5;     /* apotema de la base */
+    --c-vol:#2BAE66;   /* volumen */
+    --radius:16px;
+    --shadow:0 1px 2px rgba(22,36,59,.06), 0 8px 28px rgba(22,36,59,.07);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    padding:24px 18px 56px;
+  }
+  .wrap{max-width:1180px;margin:0 auto}
+
+  header.head{margin-bottom:22px}
+  .eyebrow{
+    font-family:"Space Grotesk",sans-serif;
+    font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--c-ap);font-weight:600;margin:0 0 6px;
+  }
+  h1{
+    font-family:"Space Grotesk",sans-serif;
+    font-weight:700;font-size:clamp(26px,4vw,38px);
+    margin:0 0 8px;line-height:1.08;letter-spacing:-.01em;
+  }
+  h1 .live-name{color:var(--c-ap)}
+  .lede{margin:0;color:var(--ink-soft);max-width:62ch;font-size:15px}
+
+  .grid{display:grid;gap:16px}
+  @media(min-width:900px){
+    .top{grid-template-columns:300px 1fr 1fr}
+  }
+  .card{
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);
+  }
+  .card h2{
+    font-family:"Space Grotesk",sans-serif;
+    font-size:13px;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--ink-soft);font-weight:600;margin:0 0 14px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .dot{width:10px;height:10px;border-radius:3px;display:inline-block}
+
+  /* ---- Controles ---- */
+  .ctl{margin-bottom:20px}
+  .ctl:last-child{margin-bottom:4px}
+  .ctl .row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+  .ctl label{font-weight:600;font-size:14px;display:flex;align-items:center;gap:7px}
+  .ctl .val{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:18px;font-variant-numeric:tabular-nums}
+  .swatch{width:11px;height:11px;border-radius:3px}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:999px;
+    background:linear-gradient(90deg,var(--accent) var(--pct,50%),#E4E8EE var(--pct,50%));
+    outline:none;cursor:pointer;margin:2px 0;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:22px;height:22px;border-radius:50%;
+    background:#fff;border:3px solid var(--accent);box-shadow:0 1px 4px rgba(0,0,0,.18);cursor:pointer;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid var(--accent);cursor:pointer;
+  }
+  .seg{display:flex;gap:6px;margin-top:4px}
+  .seg button{
+    flex:1;font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:15px;
+    padding:9px 0;border-radius:10px;border:1.5px solid var(--line);background:#fff;color:var(--ink-soft);
+    cursor:pointer;transition:.12s;
+  }
+  .seg button:hover{border-color:#bcc4d0}
+  .seg button[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+  .seg-cap{font-size:12.5px;color:var(--ink-soft);margin-top:8px;text-align:center}
+
+  /* ---- Visor 3D ---- */
+  .viewport-card{padding:0;overflow:hidden;background:var(--viewport);border-color:#0c1828}
+  .viewport-head{padding:14px 18px 0;display:flex;justify-content:space-between;align-items:center}
+  .viewport-head h2{color:#9fb2cf;margin:0}
+  .hint{font-size:11.5px;color:#7d90ac}
+  #canvas-holder{position:relative;width:100%;aspect-ratio:1/1;min-height:300px;touch-action:none}
+  #canvas-holder canvas{display:block}
+  .legend3d{position:absolute;left:14px;bottom:12px;display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:#cdd8ea}
+  .legend3d span b{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:baseline}
+
+  /* ---- Desarrollo ---- */
+  .net-wrap{display:flex;align-items:center;justify-content:center}
+  svg.net{width:100%;height:auto;max-height:320px}
+  .net text{font-family:"Space Grotesk",sans-serif;font-weight:600}
+
+  /* ---- Fórmulas ---- */
+  .formulas{display:grid;gap:12px}
+  @media(min-width:680px){.formulas{grid-template-columns:1fr 1fr}}
+  .step{
+    border:1px solid var(--line);border-radius:12px;padding:13px 15px;background:#fcfdfe;
+  }
+  .step .name{font-size:12.5px;color:var(--ink-soft);font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:7px}
+  .math{font-size:16px;line-height:2.1;color:var(--ink);overflow-x:auto}
+  .math .res{font-family:"Space Grotesk",sans-serif;font-weight:700}
+  .v-a{color:var(--c-a)} .v-h{color:var(--c-h)} .v-ap{color:var(--c-ap)}
+  .v-m{color:var(--c-m)} .v-vol{color:var(--c-vol)} .v-p{color:var(--ink)}
+  .unit{color:var(--ink-soft);font-weight:500;font-size:.85em}
+  .frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;margin:0 .12em}
+  .frac>.n{border-bottom:1.6px solid currentColor;padding:0 .3em;line-height:1.25}
+  .frac>.d{padding:0 .3em;line-height:1.25}
+  .sqrt{white-space:nowrap}
+  .sqrt>.rd{border-top:1.6px solid currentColor;padding:.08em .28em 0;margin-left:-.06em}
+  .op{color:var(--ink-soft);padding:0 .12em}
+  .big{font-size:18px}
+  .highlight{border-color:var(--c-ap);background:#fff7f0}
+  .highlight.vol{border-color:var(--c-vol);background:#f1faf4}
+  .note{font-size:12.5px;color:var(--ink-soft);margin:8px 2px 0}
+
+  /* ---- Explicación ---- */
+  .explain{display:grid;gap:14px}
+  @media(min-width:680px){.explain{grid-template-columns:1fr 1fr}}
+  .explain .card{padding:18px 20px}
+  .explain h3{font-family:"Space Grotesk",sans-serif;font-size:16px;margin:0 0 8px;display:flex;align-items:center;gap:9px}
+  .explain p{margin:0 0 8px;font-size:14.5px;color:#2c3a52}
+  .explain p:last-child{margin-bottom:0}
+  .pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;color:#fff;font-family:"Space Grotesk",sans-serif}
+  .kbd{background:#eef1f5;border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:.9em;font-weight:600}
+  footer{margin-top:26px;font-size:12px;color:var(--ink-soft);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="head">
+    <p class="eyebrow">Geometría en el espacio · 3.º ESO</p>
+    <h1>Área y volumen de la <span class="live-name" id="nameTitle">pirámide cuadrangular</span></h1>
+    <p class="lede">Mueve los deslizadores y observa cómo cambian a la vez la figura 3D, su desarrollo plano y las fórmulas con los valores reales. Los colores se mantienen: lo que es naranja en la pirámide es naranja en las fórmulas.</p>
+  </header>
+
+  <!-- FILA SUPERIOR: controles + 3D + desarrollo -->
+  <div class="grid top" style="margin-bottom:16px">
+
+    <!-- Controles -->
+    <section class="card">
+      <h2><span class="dot" style="background:var(--ink)"></span>Controles</h2>
+
+      <div class="ctl" style="--accent:var(--c-a)">
+        <div class="row">
+          <label><span class="swatch" style="background:var(--c-a)"></span>Lado de la base <i>a</i></label>
+          <span class="val" id="valA">6,0 cm</span>
+        </div>
+        <input type="range" id="inA" min="1" max="10" step="0.5" value="6">
+      </div>
+
+      <div class="ctl" style="--accent:var(--c-h)">
+        <div class="row">
+          <label><span class="swatch" style="background:var(--c-h)"></span>Altura <i>h</i></label>
+          <span class="val" id="valH">5,0 cm</span>
+        </div>
+        <input type="range" id="inH" min="1" max="10" step="0.5" value="5">
+      </div>
+
+      <div class="ctl">
+        <div class="row">
+          <label>Lados de la base <i>n</i></label>
+          <span class="val" id="valN">4</span>
+        </div>
+        <div class="seg" id="segN" role="group" aria-label="Número de lados de la base">
+          <button data-n="3" aria-pressed="false">3</button>
+          <button data-n="4" aria-pressed="true">4</button>
+          <button data-n="5" aria-pressed="false">5</button>
+          <button data-n="6" aria-pressed="false">6</button>
+        </div>
+        <p class="seg-cap" id="segCap">Base cuadrada</p>
+      </div>
+    </section>
+
+    <!-- Visor 3D -->
+    <section class="card viewport-card">
+      <div class="viewport-head">
+        <h2><span class="dot" style="background:var(--c-ap)"></span>Figura en 3D</h2>
+        <span class="hint">Arrastra para girar · gira sola</span>
+      </div>
+      <div id="canvas-holder">
+        <div class="legend3d">
+          <span><b style="background:#1F9E8E"></b>a — lado de la base</span>
+          <span><b style="background:#3B6FE0"></b>h — altura</span>
+          <span><b style="background:#EA7D2B"></b>a&#8346; — apotema lateral</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Desarrollo plano -->
+    <section class="card">
+      <h2><span class="dot" style="background:var(--c-ap)"></span>Desarrollo plano</h2>
+      <div class="net-wrap"><svg class="net" id="netSvg" viewBox="0 0 400 360" aria-label="Desarrollo plano de la pirámide"></svg></div>
+      <p class="note">La base en el centro y, plegados hacia fuera, los <b id="netCount">4</b> triángulos de las caras. La altura de cada triángulo es la apotema lateral <b style="color:var(--c-ap)">a&#8346;</b>.</p>
+    </section>
+  </div>
+
+  <!-- FÓRMULAS -->
+  <section class="card" style="margin-bottom:16px">
+    <h2><span class="dot" style="background:var(--c-vol)"></span>Fórmulas paso a paso</h2>
+    <div class="formulas" id="formulas"></div>
+    <p class="note" id="genNote"></p>
+  </section>
+
+  <!-- EXPLICACIÓN -->
+  <div class="explain">
+    <section class="card">
+      <h3><span class="pill" style="background:var(--c-ap)">Área</span>¿Por qué el área lateral suma triángulos?</h3>
+      <p>El área lateral es <b>la suma de los triángulos que forman las caras</b>. Cada cara es un triángulo: su <b style="color:var(--c-a)">base es el lado del polígono (a)</b> y su <b style="color:var(--c-ap)">altura es la apotema lateral (a&#8346;)</b>.</p>
+      <p>Como todos los triángulos son iguales, en vez de sumarlos uno a uno multiplicamos: el perímetro de la base por la apotema lateral, dividido entre 2. Por eso <span class="kbd">A&#8345; = (P · a&#8346;) / 2</span>.</p>
+    </section>
+    <section class="card">
+      <h3><span class="pill" style="background:var(--c-vol)">Volumen</span>¿Por qué el volumen es un tercio?</h3>
+      <p>El volumen de <b>cualquier pirámide es siempre un tercio</b> del prisma que tiene la misma base y la misma altura.</p>
+      <p>Imagina llenar de arena el prisma: hacen falta exactamente <b>tres pirámides</b> iguales para llenarlo. Por eso dividimos entre 3: <span class="kbd">V = (Área de la base · h) / 3</span>.</p>
+    </section>
+  </div>
+
+  <footer>Recurso interactivo · Unidad de Geometría en el espacio · Adecuado al Decreto 65/2022 (Comunidad de Madrid)</footer>
+</div>
+
+<script>
+/* ============================================================
+   ESTADO Y CÁLCULOS
+   ============================================================ */
+const COL = { a:'#1F9E8E', h:'#3B6FE0', ap:'#EA7D2B', m:'#9B5DE5', vol:'#2BAE66',
+              edge:'#9fb2cf', face:'#cdd8ea' };
+const NAMES = {3:'triangular',4:'cuadrangular',5:'pentagonal',6:'hexagonal'};
+const SHAPE = {3:'Base triángulo equilátero',4:'Base cuadrada',5:'Base pentágono regular',6:'Base hexágono regular'};
+
+let state = { a:6, h:5, n:4 };
+
+function compute(s){
+  const {a,h,n} = s;
+  const m  = a/(2*Math.tan(Math.PI/n));   // apotema de la base (centro → mitad de un lado)
+  const ap = Math.sqrt(h*h + m*m);        // apotema lateral (altura de cada cara)
+  const P  = n*a;                         // perímetro
+  const AL = P*ap/2;                       // área lateral
+  const Ab = P*m/2;                        // área de la base
+  const AT = AL + Ab;                      // área total
+  const V  = Ab*h/3;                       // volumen
+  const Rc = a/(2*Math.sin(Math.PI/n));   // radio de la circunferencia que pasa por los vértices
+  return {m,ap,P,AL,Ab,AT,V,Rc};
+}
+
+/* Formato español: coma decimal, 2 decimales */
+const fmt = (x,d=2)=> Number(x).toFixed(d).replace('.', ',');
+
+/* ============================================================
+   THREE.JS — PIRÁMIDE 3D
+   ============================================================ */
+const holder = document.getElementById('canvas-holder');
+let scene, camera, renderer, group, autoSpin=0, userRotY=0, userRotX=-0.35, dragging=false, lastX=0, lastY=0;
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function makeLabel(text, color){
+  const c = document.createElement('canvas');
+  const s = 256; c.width=s; c.height=128;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0,0,s,128);
+  ctx.font = '700 76px "Space Grotesk", sans-serif';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  // halo para legibilidad sobre fondo oscuro
+  ctx.lineWidth=10; ctx.strokeStyle='rgba(15,30,51,.95)'; ctx.strokeText(text,128,64);
+  ctx.fillStyle=color; ctx.fillText(text,128,64);
+  const tex = new THREE.CanvasTexture(c); tex.minFilter = THREE.LinearFilter;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));
+  spr.scale.set(1.7,0.85,1);
+  return spr;
+}
+
+function initThree(){
+  scene = new THREE.Scene();
+  const w = holder.clientWidth, h = holder.clientHeight || w;
+  camera = new THREE.PerspectiveCamera(42, w/h, 0.1, 1000);
+  renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setSize(w,h);
+  holder.appendChild(renderer.domElement);
+  buildPyramid();
+  // gestos
+  const el = renderer.domElement;
+  el.addEventListener('pointerdown', e=>{dragging=true; lastX=e.clientX; lastY=e.clientY; el.setPointerCapture(e.pointerId);});
+  el.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    userRotY += (e.clientX-lastX)*0.01;
+    userRotX += (e.clientY-lastY)*0.01;
+    userRotX = Math.max(-1.25, Math.min(1.25, userRotX));
+    lastX=e.clientX; lastY=e.clientY;
+  });
+  const stop=()=>dragging=false;
+  el.addEventListener('pointerup', stop);
+  el.addEventListener('pointerleave', stop);
+  el.addEventListener('pointercancel', stop);
+  animate();
+}
+
+function clearGroup(){
+  if(!group) return;
+  group.traverse(o=>{
+    if(o.geometry) o.geometry.dispose();
+    if(o.material){ if(o.material.map) o.material.map.dispose(); o.material.dispose(); }
+  });
+  scene.remove(group);
+}
+
+function buildPyramid(){
+  clearGroup();
+  group = new THREE.Group();
+  const {a,h,n} = state;
+  const r = compute(state).Rc;          // radio a los vértices (cm)
+  const y0 = -h/2, y1 = h/2;            // centramos verticalmente
+  const off = -Math.PI/2 - Math.PI/n;   // un lado plano abajo
+
+  // vértices de la base
+  const base = [];
+  for(let i=0;i<n;i++){
+    const t = off + i*2*Math.PI/n;
+    base.push(new THREE.Vector3(r*Math.cos(t), y0, r*Math.sin(t)));
+  }
+  const apex = new THREE.Vector3(0, y1, 0);
+
+  // --- caras laterales (translúcidas) ---
+  const facePos = [];
+  for(let i=0;i<n;i++){
+    const p0=base[i], p1=base[(i+1)%n];
+    facePos.push(p0.x,p0.y,p0.z, p1.x,p1.y,p1.z, apex.x,apex.y,apex.z);
+  }
+  const fg = new THREE.BufferGeometry();
+  fg.setAttribute('position', new THREE.Float32BufferAttribute(facePos,3));
+  const faceMat = new THREE.MeshBasicMaterial({color:0x6f8bb5,transparent:true,opacity:0.16,side:THREE.DoubleSide,depthWrite:false});
+  group.add(new THREE.Mesh(fg, faceMat));
+
+  // cara frontal resaltada (la del lado de abajo) en color apotema lateral
+  const front = new THREE.BufferGeometry();
+  front.setAttribute('position', new THREE.Float32BufferAttribute([
+    base[0].x,base[0].y,base[0].z, base[1].x,base[1].y,base[1].z, apex.x,apex.y,apex.z
+  ],3));
+  group.add(new THREE.Mesh(front, new THREE.MeshBasicMaterial({color:0xEA7D2B,transparent:true,opacity:0.22,side:THREE.DoubleSide,depthWrite:false})));
+
+  // base translúcida
+  const bp=[]; for(let i=1;i<n-1;i++){bp.push(base[0].x,base[0].y,base[0].z, base[i].x,base[i].y,base[i].z, base[i+1].x,base[i+1].y,base[i+1].z);}
+  const bg=new THREE.BufferGeometry(); bg.setAttribute('position',new THREE.Float32BufferAttribute(bp,3));
+  group.add(new THREE.Mesh(bg, new THREE.MeshBasicMaterial({color:0x1F9E8E,transparent:true,opacity:0.14,side:THREE.DoubleSide,depthWrite:false})));
+
+  // --- aristas ---
+  const edgePts=[];
+  for(let i=0;i<n;i++){ const p0=base[i],p1=base[(i+1)%n]; edgePts.push(p0,p1); }      // base
+  for(let i=0;i<n;i++){ edgePts.push(base[i], apex); }                                  // laterales
+  const eg=new THREE.BufferGeometry().setFromPoints(edgePts);
+  group.add(new THREE.LineSegments(eg, new THREE.LineBasicMaterial({color:0xc3d0e6})));
+
+  // arista del lado "a" resaltada (verde)
+  const ea=new THREE.BufferGeometry().setFromPoints([base[0],base[1]]);
+  group.add(new THREE.LineSegments(ea, new THREE.LineBasicMaterial({color:0x1F9E8E})));
+
+  // altura h (línea discontinua azul, eje central)
+  const hg=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,y0,0), apex]);
+  const hLine=new THREE.Line(hg, new THREE.LineDashedMaterial({color:0x3B6FE0,dashSize:0.4,gapSize:0.3}));
+  hLine.computeLineDistances();
+  group.add(hLine);
+
+  // apotema lateral a_p (apex → punto medio del lado 0), naranja
+  const mid = new THREE.Vector3().addVectors(base[0],base[1]).multiplyScalar(0.5);
+  const apg=new THREE.BufferGeometry().setFromPoints([apex, mid]);
+  group.add(new THREE.Line(apg, new THREE.LineBasicMaterial({color:0xEA7D2B})));
+  // pequeño marcador de la apotema de la base (centro → mid), morado tenue
+  const mg=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,y0,0), mid]);
+  group.add(new THREE.Line(mg, new THREE.LineBasicMaterial({color:0x9B5DE5,transparent:true,opacity:0.8})));
+
+  // --- etiquetas ---
+  const lblA = makeLabel('a', COL.a);
+  lblA.position.copy(new THREE.Vector3().addVectors(base[0],base[1]).multiplyScalar(0.5)).multiplyScalar(1.18); lblA.position.y=y0-0.15;
+  group.add(lblA);
+
+  const lblH = makeLabel('h', COL.h);
+  lblH.position.set(0.55, 0, 0.0);
+  group.add(lblH);
+
+  const lblAp = makeLabel('a\u2099', COL.ap);  // aₚ (subíndice p ~ usamos n-like glyph fallback)
+  const apMid = new THREE.Vector3().addVectors(apex, mid).multiplyScalar(0.5);
+  apMid.x*=1.25; apMid.z*=1.25;
+  lblAp.position.copy(apMid);
+  group.add(lblAp);
+
+  scene.add(group);
+
+  // encuadre de cámara según tamaño
+  const boundR = Math.sqrt(r*r + (h/2)*(h/2));
+  const dist = boundR / Math.tan((camera.fov*Math.PI/180)/2) * 1.45 + 1.5;
+  camera.position.set(0,0,dist);
+  camera.lookAt(0,0,0);
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  if(!dragging && !reduceMotion) autoSpin += 0.005;
+  if(group){ group.rotation.y = autoSpin + userRotY; group.rotation.x = userRotX; }
+  renderer.render(scene,camera);
+}
+
+function onResize(){
+  if(!renderer) return;
+  const w=holder.clientWidth, h=holder.clientHeight||w;
+  camera.aspect=w/h; camera.updateProjectionMatrix();
+  renderer.setSize(w,h);
+}
+window.addEventListener('resize', onResize);
+
+/* ============================================================
+   DESARROLLO PLANO (SVG)
+   ============================================================ */
+function buildNet(){
+  const {a,n} = state;
+  const {m,ap,Rc} = compute(state);
+  const off = -Math.PI/2 - Math.PI/n;          // mismo criterio que el 3D
+  // vértices del polígono (matemáticas: y hacia arriba)
+  const V=[];
+  for(let i=0;i<n;i++){ const t=off+i*2*Math.PI/n; V.push([Rc*Math.cos(t), Rc*Math.sin(t)]); }
+  // apex de cada triángulo desplegado
+  const apexes=[];
+  for(let i=0;i<n;i++){
+    const p0=V[i], p1=V[(i+1)%n];
+    const mx=(p0[0]+p1[0])/2, my=(p0[1]+p1[1])/2;
+    const len=Math.hypot(mx,my)||1;
+    apexes.push([mx + mx/len*ap, my + my/len*ap, mx, my]); // ax, ay, midx, midy
+  }
+  // límites para encuadrar
+  let R = m + ap;
+  let pts=[...V, ...apexes.map(t=>[t[0],t[1]])];
+  let maxX=Math.max(...pts.map(p=>Math.abs(p[0]))), maxY=Math.max(...pts.map(p=>Math.abs(p[1])));
+  const W=400,H=360, pad=30;
+  const sc = Math.min((W-2*pad)/(2*maxX), (H-2*pad)/(2*maxY));
+  const cx=W/2, cy=H/2;
+  const X = x => cx + x*sc;
+  const Y = y => cy - y*sc;   // invertimos para SVG
+
+  let svg='';
+  // triángulos
+  for(let i=0;i<n;i++){
+    const p0=V[i], p1=V[(i+1)%n], ax=apexes[i];
+    svg += `<polygon points="${X(p0[0])},${Y(p0[1])} ${X(p1[0])},${Y(p1[1])} ${X(ax[0])},${Y(ax[1])}"
+              fill="rgba(234,125,43,.10)" stroke="${COL.ap}" stroke-width="1.6" stroke-linejoin="round"/>`;
+  }
+  // base (polígono central)
+  svg += `<polygon points="${V.map(p=>X(p[0])+','+Y(p[1])).join(' ')}"
+            fill="rgba(31,158,142,.16)" stroke="${COL.a}" stroke-width="2" stroke-linejoin="round"/>`;
+
+  // ---- triángulo de abajo (i=0): etiquetas a_p y a ----
+  const t0=apexes[0]; const p0=V[0], p1=V[1];
+  const mx=t0[2], my=t0[3];
+  // línea apotema lateral (mid → apex)
+  svg += `<line x1="${X(mx)}" y1="${Y(my)}" x2="${X(t0[0])}" y2="${Y(t0[1])}" stroke="${COL.ap}" stroke-width="1.8" stroke-dasharray="5 3"/>`;
+  // pequeño ángulo recto en el pie
+  // etiqueta a_p
+  const lax=(mx+t0[0])/2, lay=(my+t0[1])/2;
+  svg += `<text x="${X(lax)+8}" y="${Y(lay)+4}" font-size="17" fill="${COL.ap}">a&#8346;</text>`;
+  // etiqueta a sobre el lado de la base de ese triángulo
+  const ex=(p0[0]+p1[0])/2, ey=(p0[1]+p1[1])/2;
+  svg += `<text x="${X(ex)}" y="${Y(ey)-7}" font-size="16" fill="${COL.a}" text-anchor="middle">a</text>`;
+
+  document.getElementById('netSvg').innerHTML = svg;
+  document.getElementById('netCount').textContent = n;
+}
+
+/* ============================================================
+   PANEL DE FÓRMULAS
+   ============================================================ */
+function frac(num,den){return `<span class="frac"><span class="n">${num}</span><span class="d">${den}</span></span>`;}
+function sqrt(inner){return `<span class="sqrt">&radic;<span class="rd">${inner}</span></span>`;}
+
+function buildFormulas(){
+  const {a,h,n}=state, r=compute(state);
+  const {m,ap,P,AL,Ab,AT,V}=r;
+  const A=`<span class="v-a">${fmt(a,1)}</span>`;
+  const H=`<span class="v-h">${fmt(h,1)}</span>`;
+
+  // apotema de la base: para n=4 es a/2; en general a/(2·tan(180/n))
+  let mRow;
+  if(n===4){
+    mRow = `<div class="step">
+      <div class="name">Apotema de la base <i>m</i> (mitad del lado, por ser cuadrada)</div>
+      <div class="math">m <span class="op">=</span> ${frac(A,'2')} <span class="op">=</span>
+        <span class="res v-m">${fmt(m)}</span> <span class="unit">cm</span></div></div>`;
+  } else {
+    mRow = `<div class="step">
+      <div class="name">Apotema de la base <i>m</i> = a / (2 · tan(180°/n))</div>
+      <div class="math">m <span class="op">=</span> ${frac(A, `2 &middot; tan(${fmt(180/n,1)}&deg;)`)} <span class="op">=</span>
+        <span class="res v-m">${fmt(m)}</span> <span class="unit">cm</span></div></div>`;
+  }
+
+  // apotema lateral (fórmula que pediste para cuadrangular)
+  const apInner = n===4
+    ? `${H}<sup>2</sup> <span class="op">+</span> (${A}/2)<sup>2</sup>`
+    : `${H}<sup>2</sup> <span class="op">+</span> <span class="v-m">${fmt(m)}</span><sup>2</sup>`;
+  const apTitle = n===4
+    ? 'Apotema lateral &nbsp; a&#8346; = &radic;(h&sup2; + (a/2)&sup2;)'
+    : 'Apotema lateral &nbsp; a&#8346; = &radic;(h&sup2; + m&sup2;)';
+
+  const html = `
+  <div class="step">
+    <div class="name">Perímetro de la base &nbsp; P = n · a</div>
+    <div class="math">P <span class="op">=</span> ${n} <span class="op">&middot;</span> ${A}
+      <span class="op">=</span> <span class="res v-p">${fmt(P)}</span> <span class="unit">cm</span></div>
+  </div>
+
+  ${mRow}
+
+  <div class="step highlight">
+    <div class="name"><span class="swatch" style="background:var(--c-ap);display:inline-block;width:10px;height:10px;border-radius:2px"></span>${apTitle}</div>
+    <div class="math big">a&#8346; <span class="op">=</span> ${sqrt(apInner)} <span class="op">=</span>
+      <span class="res v-ap">${fmt(ap)}</span> <span class="unit">cm</span></div>
+  </div>
+
+  <div class="step">
+    <div class="name">Área de la base${n===4?' (cuadrado: a&sup2;)':' = (P · m) / 2'}</div>
+    <div class="math">A<sub>base</sub> <span class="op">=</span>
+      ${n===4 ? `${A}<sup>2</sup>` : frac(`${fmt(P)} &middot; <span class="v-m">${fmt(m)}</span>`,'2')}
+      <span class="op">=</span> <span class="res">${fmt(Ab)}</span> <span class="unit">cm&sup2;</span></div>
+  </div>
+
+  <div class="step">
+    <div class="name">Área lateral &nbsp; A&#8345; = (P · a&#8346;) / 2</div>
+    <div class="math">A&#8345; <span class="op">=</span>
+      ${frac(`${fmt(P)} &middot; <span class="v-ap">${fmt(ap)}</span>`,'2')}
+      <span class="op">=</span> <span class="res v-ap">${fmt(AL)}</span> <span class="unit">cm&sup2;</span></div>
+  </div>
+
+  <div class="step">
+    <div class="name">Área total &nbsp; A&#8348; = A&#8345; + A<sub>base</sub></div>
+    <div class="math">A&#8348; <span class="op">=</span> <span class="v-ap">${fmt(AL)}</span>
+      <span class="op">+</span> ${fmt(Ab)}
+      <span class="op">=</span> <span class="res">${fmt(AT)}</span> <span class="unit">cm&sup2;</span></div>
+  </div>
+
+  <div class="step highlight vol">
+    <div class="name"><span class="swatch" style="background:var(--c-vol);display:inline-block;width:10px;height:10px;border-radius:2px"></span>Volumen &nbsp; V = (A<sub>base</sub> · h) / 3</div>
+    <div class="math big">V <span class="op">=</span>
+      ${frac(`${fmt(Ab)} &middot; ${H}`,'3')}
+      <span class="op">=</span> <span class="res v-vol">${fmt(V)}</span> <span class="unit">cm&sup3;</span></div>
+  </div>`;
+
+  document.getElementById('formulas').innerHTML = html;
+  document.getElementById('genNote').innerHTML = n===4
+    ? 'En la pirámide cuadrangular la apotema de la base coincide con la mitad del lado, por eso a&#8346; = &radic;(h&sup2; + (a/2)&sup2;).'
+    : 'Para una base de '+n+' lados usamos la apotema de la base m; en el caso del cuadrado, m vale justo a/2.';
+}
+
+/* ============================================================
+   ACTUALIZACIÓN GENERAL Y EVENTOS
+   ============================================================ */
+function setSliderFill(input){
+  const pct = (input.value-input.min)/(input.max-input.min)*100;
+  input.style.setProperty('--pct', pct+'%');
+}
+
+function updateAll(rebuild3D=true){
+  document.getElementById('valA').textContent = fmt(state.a,1)+' cm';
+  document.getElementById('valH').textContent = fmt(state.h,1)+' cm';
+  document.getElementById('valN').textContent = state.n;
+  document.getElementById('nameTitle').textContent = 'pirámide '+NAMES[state.n];
+  document.getElementById('segCap').textContent = SHAPE[state.n];
+  if(rebuild3D) buildPyramid();
+  buildNet();
+  buildFormulas();
+}
+
+const inA=document.getElementById('inA'), inH=document.getElementById('inH');
+inA.addEventListener('input', ()=>{state.a=parseFloat(inA.value); setSliderFill(inA); updateAll();});
+inH.addEventListener('input', ()=>{state.h=parseFloat(inH.value); setSliderFill(inH); updateAll();});
+document.querySelectorAll('#segN button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    state.n = parseInt(b.dataset.n);
+    document.querySelectorAll('#segN button').forEach(x=>x.setAttribute('aria-pressed', x===b));
+    updateAll();
+  });
+});
+
+setSliderFill(inA); setSliderFill(inH);
+initThree();
+updateAll(false);
+window.addEventListener('load', onResize);
+</script>
+</body>
+</html>

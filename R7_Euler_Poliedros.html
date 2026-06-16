@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La fórmula de Euler para poliedros · 3.º ESO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a1322;
+    --bg2:#0f1d35;
+    --panel:rgba(255,255,255,0.04);
+    --panel-border:rgba(255,255,255,0.10);
+    --ink:#eef3fb;
+    --muted:#93a4c0;
+    --faint:#5f718f;
+    --accent:#7fd4ff;
+    /* color de cada poliedro */
+    --c-tetraedro:#ffb703;
+    --c-cubo:#4cc9f0;
+    --c-octaedro:#7be08a;
+    --c-dodecaedro:#c79bff;
+    --c-icosaedro:#ff8da1;
+    --v-color:#ffd166;  /* vértices */
+    --a-color:#7fd4ff;  /* aristas  */
+    --f-color:#9bf0a8;  /* caras    */
+    --result:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 700px at 78% -10%, rgba(76,201,240,0.10), transparent 60%),
+      radial-gradient(1000px 600px at 8% 110%, rgba(199,155,255,0.10), transparent 55%),
+      linear-gradient(180deg, var(--bg2), var(--bg));
+    color:var(--ink);
+    font-family:"Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{
+    max-width:1180px;
+    margin:0 auto;
+    padding:26px 22px 40px;
+  }
+  header.top{
+    display:flex; flex-direction:column; gap:6px; margin-bottom:18px;
+  }
+  .eyebrow{
+    font-size:12px; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--faint); font-weight:600;
+  }
+  h1{
+    font-family:"Space Grotesk", sans-serif;
+    font-weight:700; font-size:clamp(24px,4.2vw,38px);
+    line-height:1.05; margin:0; letter-spacing:-0.01em;
+  }
+  h1 .eq{ color:var(--accent); white-space:nowrap; }
+  .lead{ color:var(--muted); font-size:15px; max-width:62ch; margin-top:2px;}
+
+  /* Selector de poliedros */
+  .picker{
+    display:flex; flex-wrap:wrap; gap:10px; margin:20px 0 18px;
+  }
+  .pbtn{
+    --c:var(--accent);
+    appearance:none; cursor:pointer;
+    background:var(--panel); color:var(--ink);
+    border:1px solid var(--panel-border); border-radius:13px;
+    padding:11px 15px; min-width:120px;
+    font-family:"Space Grotesk", sans-serif; font-weight:600; font-size:15px;
+    display:flex; flex-direction:column; gap:2px; line-height:1.1;
+    transition:transform .12s ease, border-color .15s ease, background .15s ease;
+  }
+  .pbtn .sub{ font-family:"Inter",sans-serif; font-weight:500; font-size:11.5px; color:var(--muted);}
+  .pbtn .dot{
+    width:9px; height:9px; border-radius:50%; background:var(--c);
+    box-shadow:0 0 10px var(--c); display:inline-block; margin-right:7px;
+    transform:translateY(-1px);
+  }
+  .pbtn:hover{ transform:translateY(-2px); border-color:var(--c); }
+  .pbtn.active{
+    background:color-mix(in srgb, var(--c) 16%, transparent);
+    border-color:var(--c);
+    box-shadow:0 0 0 1px var(--c) inset, 0 8px 26px -16px var(--c);
+  }
+  .pbtn:focus-visible{ outline:3px solid var(--accent); outline-offset:2px;}
+
+  /* Distribución principal */
+  .grid{
+    display:grid; grid-template-columns: 1.25fr 1fr; gap:18px;
+    align-items:stretch;
+  }
+  @media (max-width: 860px){ .grid{ grid-template-columns:1fr; } }
+
+  .stage{
+    position:relative; background:var(--panel);
+    border:1px solid var(--panel-border); border-radius:18px;
+    overflow:hidden; min-height:380px;
+  }
+  .stage canvas{ display:block; width:100%; height:100%; touch-action:none;}
+  .stage .name{
+    position:absolute; left:16px; top:14px;
+    font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:17px;
+    color:var(--ink); letter-spacing:.01em;
+  }
+  .stage .name b{ color:var(--c-cubo); }
+  .stage .hint{
+    position:absolute; right:14px; bottom:12px;
+    font-size:12px; color:var(--faint);
+    background:rgba(0,0,0,.25); padding:5px 9px; border-radius:8px;
+    pointer-events:none;
+  }
+  .legend{
+    position:absolute; left:16px; bottom:12px; display:flex; gap:14px;
+    font-size:12px; color:var(--muted);
+  }
+  .legend i{ width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle;}
+  .legend .lv i{background:var(--v-color);}
+  .legend .la i{background:var(--a-color);}
+  .legend .lf i{background:var(--f-color);}
+
+  .panel{
+    background:var(--panel); border:1px solid var(--panel-border);
+    border-radius:18px; padding:20px; display:flex; flex-direction:column; gap:18px;
+  }
+  .stats{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
+  .stat{
+    background:rgba(255,255,255,0.03); border:1px solid var(--panel-border);
+    border-radius:13px; padding:13px 12px; text-align:center;
+  }
+  .stat .lab{ font-size:12px; color:var(--muted); font-weight:600;}
+  .stat .num{
+    font-family:"Space Grotesk",sans-serif; font-weight:700;
+    font-size:34px; line-height:1; margin-top:6px;
+  }
+  .stat.v .num{ color:var(--v-color);}
+  .stat.a .num{ color:var(--a-color);}
+  .stat.f .num{ color:var(--f-color);}
+  .stat .word{ font-size:11px; color:var(--faint); margin-top:4px;}
+
+  /* Ecuación de Euler (elemento protagonista) */
+  .euler{
+    background:linear-gradient(180deg, rgba(127,212,255,0.07), rgba(127,212,255,0.02));
+    border:1px solid var(--panel-border); border-radius:14px; padding:16px 14px;
+  }
+  .euler .title{ font-size:12px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--faint); font-weight:600; margin-bottom:10px; text-align:center;}
+  .formula{
+    font-family:"Space Grotesk",sans-serif; font-weight:600;
+    font-size:clamp(20px,4.4vw,27px); text-align:center; line-height:1.5;
+  }
+  .formula .lineA{ color:var(--muted); }
+  .formula .v{color:var(--v-color);} .formula .a{color:var(--a-color);} .formula .f{color:var(--f-color);}
+  .formula .res{
+    color:var(--result); font-weight:700;
+    background:rgba(255,255,255,0.10); border-radius:8px; padding:0 10px;
+  }
+  .formula .num{ display:inline-block; transition:transform .25s ease; }
+  .verdict{
+    margin-top:11px; text-align:center; font-size:13.5px; color:var(--muted);
+  }
+  .verdict b{ color:#9bf0a8; }
+
+  .note{ font-size:14px; color:var(--muted); line-height:1.6;}
+  .note strong{ color:var(--ink); font-weight:600;}
+  .note .key{ color:var(--accent); font-weight:600;}
+
+  footer{ margin-top:22px; font-size:12px; color:var(--faint); text-align:center;}
+
+  @media (prefers-reduced-motion: reduce){ .pbtn{transition:none;} .formula .num{transition:none;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">Matemáticas · 3.º ESO · Geometría en el espacio</span>
+    <h1>La fórmula de Euler <span class="eq">V − A + C = 2</span></h1>
+    <p class="lead">Elige un poliedro, gíralo arrastrando con el ratón o el dedo, y comprueba que siempre se cumple la misma igualdad.</p>
+  </header>
+
+  <div class="picker" id="picker" role="group" aria-label="Elegir poliedro"></div>
+
+  <div class="grid">
+    <div class="stage" id="stage">
+      <div class="name" id="solidName">Cubo</div>
+      <div class="legend">
+        <span class="lv"><i></i>Vértices</span>
+        <span class="la"><i></i>Aristas</span>
+        <span class="lf"><i></i>Caras</span>
+      </div>
+      <div class="hint">Arrastra para girar</div>
+    </div>
+
+    <div class="panel">
+      <div class="stats">
+        <div class="stat v"><div class="lab">V</div><div class="num" id="vNum">8</div><div class="word">vértices</div></div>
+        <div class="stat a"><div class="lab">A</div><div class="num" id="aNum">12</div><div class="word">aristas</div></div>
+        <div class="stat f"><div class="lab">C</div><div class="num" id="fNum">6</div><div class="word">caras</div></div>
+      </div>
+
+      <div class="euler">
+        <div class="title">Comprobación de Euler</div>
+        <div class="formula">
+          <div class="lineA">V − A + C</div>
+          <div>
+            <span class="num v" id="fv">8</span> −
+            <span class="num a" id="fa">12</span> +
+            <span class="num f" id="ff">6</span> =
+            <span class="res" id="fr">2</span>
+          </div>
+        </div>
+        <div class="verdict" id="verdict">El resultado es <b>2</b> ✓</div>
+      </div>
+
+      <p class="note">
+        La <span class="key">fórmula de Euler</span> dice que, en <strong>cualquier poliedro convexo</strong>,
+        si cuentas sus vértices (V), le restas sus aristas (A) y le sumas sus caras (C),
+        siempre obtienes <strong>2</strong>, sin importar cuántas caras tenga.
+        Pruébalo con los cinco poliedros: el número de V, A y C cambia, pero el resultado no.
+      </p>
+    </div>
+  </div>
+
+  <footer>Recurso para la unidad de geometría en el espacio · Decreto 65/2022, Comunidad de Madrid</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  // ---- Datos matemáticos (valores verificados) ----
+  // V - A + C debe dar 2 en todos.
+  var SOLIDS = {
+    tetraedro:  { label:"Tetraedro",  faces:4,  V:4,  A:6,  C:4,  color:0xffb703, css:"--c-tetraedro" },
+    cubo:       { label:"Cubo",       faces:6,  V:8,  A:12, C:6,  color:0x4cc9f0, css:"--c-cubo" },
+    octaedro:   { label:"Octaedro",   faces:8,  V:6,  A:12, C:8,  color:0x7be08a, css:"--c-octaedro" },
+    dodecaedro: { label:"Dodecaedro", faces:12, V:20, A:30, C:12, color:0xc79bff, css:"--c-dodecaedro" },
+    icosaedro:  { label:"Icosaedro",  faces:20, V:12, A:30, C:20, color:0xff8da1, css:"--c-icosaedro" }
+  };
+  var ORDER = ["tetraedro","cubo","octaedro","dodecaedro","icosaedro"];
+  var current = "cubo";
+  var R = 1.7; // radio común (circunradio) para que se vean de tamaño parecido
+
+  // ---- Construir botones ----
+  var picker = document.getElementById("picker");
+  ORDER.forEach(function(key){
+    var s = SOLIDS[key];
+    var b = document.createElement("button");
+    b.className = "pbtn" + (key===current ? " active" : "");
+    b.setAttribute("data-key", key);
+    b.setAttribute("aria-pressed", key===current ? "true" : "false");
+    b.style.setProperty("--c", "var(" + s.css + ")");
+    b.innerHTML = '<span><span class="dot"></span>' + s.label + '</span><span class="sub">' + s.faces + ' caras</span>';
+    b.addEventListener("click", function(){ select(key); });
+    picker.appendChild(b);
+  });
+
+  // ---- Three.js ----
+  var stage = document.getElementById("stage");
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+  camera.position.set(0, 0.4, 6);
+
+  var renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  stage.appendChild(renderer.domElement);
+
+  // Luces
+  scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+  var key1 = new THREE.DirectionalLight(0xffffff, 0.85); key1.position.set(4, 6, 5); scene.add(key1);
+  var key2 = new THREE.DirectionalLight(0x88bbff, 0.45); key2.position.set(-5, -2, -3); scene.add(key2);
+
+  // Geometría base para cada poliedro
+  function makeGeometry(key){
+    switch(key){
+      case "tetraedro":  return new THREE.TetrahedronGeometry(R, 0);
+      case "cubo":       return new THREE.BoxGeometry(R*2/Math.sqrt(3), R*2/Math.sqrt(3), R*2/Math.sqrt(3));
+      case "octaedro":   return new THREE.OctahedronGeometry(R, 0);
+      case "dodecaedro": return new THREE.DodecahedronGeometry(R, 0);
+      case "icosaedro":  return new THREE.IcosahedronGeometry(R, 0);
+    }
+  }
+
+  // Vértices únicos (eliminando duplicados que crea la geometría)
+  function uniqueVertices(geom){
+    var pos = geom.attributes.position;
+    var seen = {}, out = [];
+    for(var i=0;i<pos.count;i++){
+      var x=pos.getX(i), y=pos.getY(i), z=pos.getZ(i);
+      var k = x.toFixed(3)+"|"+y.toFixed(3)+"|"+z.toFixed(3);
+      if(!seen[k]){ seen[k]=1; out.push(new THREE.Vector3(x,y,z)); }
+    }
+    return out;
+  }
+
+  // Construir un grupo (caras + aristas + vértices) por poliedro
+  var groups = {};
+  ORDER.forEach(function(key){
+    var s = SOLIDS[key];
+    var geom = makeGeometry(key);
+    var g = new THREE.Group();
+
+    // Caras: coloreadas y transparentes para ver las aristas interiores
+    var faceMat = new THREE.MeshPhongMaterial({
+      color: s.color, transparent:true, opacity:0.30,
+      side: THREE.DoubleSide, depthWrite:false, shininess:40,
+      specular:0x223344
+    });
+    g.add(new THREE.Mesh(geom, faceMat));
+
+    // Aristas: solo las reales del poliedro (umbral oculta diagonales internas de las caras)
+    var edges = new THREE.EdgesGeometry(geom, 1);
+    var edgeMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent:true, opacity:0.92 });
+    g.add(new THREE.LineSegments(edges, edgeMat));
+
+    // Vértices: una esferita brillante en cada uno
+    var verts = uniqueVertices(geom);
+    var sphGeo = new THREE.SphereGeometry(R*0.045, 16, 16);
+    var sphMat = new THREE.MeshBasicMaterial({ color: 0xffd166 });
+    verts.forEach(function(v){
+      var m = new THREE.Mesh(sphGeo, sphMat);
+      m.position.copy(v);
+      g.add(m);
+    });
+
+    // --- Auto-comprobación: ¿coincide lo dibujado con los datos? ---
+    var drawnV = verts.length;
+    var drawnA = edges.attributes.position.count / 2;
+    if(drawnV !== s.V || drawnA !== s.A){
+      console.warn("[Aviso] " + s.label + ": geometría V="+drawnV+", A="+drawnA +
+        " no coincide con datos V="+s.V+", A="+s.A);
+    } else {
+      console.log("OK " + s.label + ": V="+s.V+" A="+s.A+" C="+s.C+" -> "+(s.V-s.A+s.C));
+    }
+
+    g.visible = (key === current);
+    groups[key] = g;
+    scene.add(g);
+  });
+
+  // ---- Rotación: automática + arrastrar ----
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var dragging = false, lastX = 0, lastY = 0, idleTimer = 0;
+  var Y_AXIS = new THREE.Vector3(0,1,0), X_AXIS = new THREE.Vector3(1,0,0);
+
+  function pointerDown(e){
+    dragging = true; idleTimer = 0;
+    lastX = (e.touches ? e.touches[0].clientX : e.clientX);
+    lastY = (e.touches ? e.touches[0].clientY : e.clientY);
+  }
+  function pointerMove(e){
+    if(!dragging) return;
+    var x = (e.touches ? e.touches[0].clientX : e.clientX);
+    var y = (e.touches ? e.touches[0].clientY : e.clientY);
+    var dx = x - lastX, dy = y - lastY;
+    lastX = x; lastY = y;
+    var g = groups[current];
+    g.rotateOnWorldAxis(Y_AXIS, dx * 0.01);
+    g.rotateOnWorldAxis(X_AXIS, dy * 0.01);
+    if(e.cancelable) e.preventDefault();
+  }
+  function pointerUp(){ dragging = false; idleTimer = 0; }
+
+  var cv = renderer.domElement;
+  cv.addEventListener("pointerdown", pointerDown);
+  window.addEventListener("pointermove", pointerMove, {passive:false});
+  window.addEventListener("pointerup", pointerUp);
+  cv.addEventListener("touchstart", pointerDown, {passive:true});
+  window.addEventListener("touchmove", pointerMove, {passive:false});
+  window.addEventListener("touchend", pointerUp);
+
+  function resize(){
+    var w = stage.clientWidth, h = stage.clientHeight;
+    if(w===0||h===0) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w/h; camera.updateProjectionMatrix();
+  }
+  window.addEventListener("resize", resize);
+
+  function animate(){
+    requestAnimationFrame(animate);
+    if(!dragging && !reduceMotion){
+      idleTimer++;
+      // gira despacio cuando nadie lo está tocando
+      if(idleTimer > 30) groups[current].rotateOnWorldAxis(Y_AXIS, 0.004);
+    }
+    renderer.render(scene, camera);
+  }
+
+  // ---- Cambiar de poliedro ----
+  function select(key){
+    if(!SOLIDS[key]) return;
+    groups[current].visible = false;
+    current = key;
+    groups[current].visible = true;
+    updatePanel();
+    // botones
+    Array.prototype.forEach.call(picker.children, function(b){
+      var on = b.getAttribute("data-key")===key;
+      b.classList.toggle("active", on);
+      b.setAttribute("aria-pressed", on ? "true":"false");
+    });
+  }
+
+  function bump(id){
+    var el = document.getElementById(id);
+    if(reduceMotion) return;
+    el.style.transform = "translateY(-6px) scale(1.18)";
+    setTimeout(function(){ el.style.transform = ""; }, 250);
+  }
+
+  function updatePanel(){
+    var s = SOLIDS[current];
+    // nombre con su color
+    var nm = document.getElementById("solidName");
+    nm.innerHTML = "<b style='color:#fff'>"+s.label+"</b>";
+    nm.querySelector("b").style.color = "#" + s.color.toString(16).padStart(6,"0");
+
+    // tarjetas V, A, C
+    document.getElementById("vNum").textContent = s.V;
+    document.getElementById("aNum").textContent = s.A;
+    document.getElementById("fNum").textContent = s.C;
+
+    // ecuación paso a paso (el resultado se CALCULA, no se escribe a mano)
+    var result = s.V - s.A + s.C;
+    document.getElementById("fv").textContent = s.V;
+    document.getElementById("fa").textContent = s.A;
+    document.getElementById("ff").textContent = s.C;
+    document.getElementById("fr").textContent = result;
+    bump("fv"); bump("fa"); bump("ff");
+
+    var vd = document.getElementById("verdict");
+    if(result === 2){
+      vd.innerHTML = "El resultado vuelve a ser <b>2</b> ✓";
+    } else {
+      vd.innerHTML = "Resultado: " + result;
+    }
+  }
+
+  // arranque
+  resize();
+  updatePanel();
+  // botón activo correcto al inicio
+  Array.prototype.forEach.call(picker.children, function(b){
+    var on = b.getAttribute("data-key")===current;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-pressed", on ? "true":"false");
+  });
+  animate();
+  // pequeño reajuste por si las fuentes/medidas cambian el layout
+  setTimeout(resize, 200);
+  window.addEventListener("load", resize);
+})();
+</script>
+</body>
+</html>

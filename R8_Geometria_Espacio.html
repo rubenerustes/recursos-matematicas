@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cilindro y cono · Área y volumen · 3.º ESO</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root{
+    --ink:#14213d;
+    --ink-soft:#41507a;
+    --paper:#f6f8fc;
+    --card:#ffffff;
+    --line:#dfe5f1;
+    --lateral:#1f8a8c;   /* superficie lateral */
+    --lateral-2:#9fe0e0;
+    --base:#e26a4f;      /* círculos / bases */
+    --base-2:#f6c4b6;
+    --accent:#3b5bdb;
+    --ok:#1f8a8c;
+    --shadow:0 1px 2px rgba(20,33,61,.06),0 8px 24px rgba(20,33,61,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);
+    background:
+      linear-gradient(var(--paper),var(--paper)),
+      repeating-linear-gradient(0deg,rgba(59,91,219,.04) 0 1px,transparent 1px 26px),
+      repeating-linear-gradient(90deg,rgba(59,91,219,.04) 0 1px,transparent 1px 26px);
+    background-blend-mode:normal;
+    line-height:1.5;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:22px 18px 60px}
+  header.top{margin-bottom:18px}
+  .eyebrow{
+    font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);font-weight:700;margin:0 0 4px
+  }
+  h1{font-size:clamp(1.5rem,3.6vw,2.1rem);margin:0;font-weight:800;letter-spacing:-.01em}
+  .sub{color:var(--ink-soft);margin:6px 0 0;font-size:.95rem}
+
+  /* Pestañas */
+  .tabs{display:flex;gap:8px;margin:20px 0 0;flex-wrap:wrap}
+  .tab{
+    appearance:none;border:1px solid var(--line);background:var(--card);
+    color:var(--ink-soft);font-weight:700;font-size:.95rem;
+    padding:10px 18px;border-radius:12px 12px 0 0;cursor:pointer;
+    display:flex;align-items:center;gap:9px;transition:.15s;border-bottom:none;
+  }
+  .tab .ico{width:14px;height:14px;border-radius:3px;background:var(--line)}
+  .tab[aria-selected="true"]{
+    color:var(--ink);background:var(--card);box-shadow:var(--shadow);
+    transform:translateY(1px)
+  }
+  .tab[data-fig="cilindro"][aria-selected="true"] .ico{background:var(--lateral)}
+  .tab[data-fig="cono"][aria-selected="true"] .ico{background:var(--base)}
+  .tab:hover{color:var(--ink)}
+
+  .panel{display:none;background:var(--card);border:1px solid var(--line);
+    border-radius:0 14px 14px 14px;box-shadow:var(--shadow);padding:20px}
+  .panel.active{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  .lead{background:linear-gradient(180deg,#f3f7ff,#fbfdff);border:1px solid var(--line);
+    border-left:4px solid var(--accent);border-radius:10px;padding:12px 14px;margin:0 0 18px;
+    font-size:.95rem;color:#27325a}
+  .lead b{color:var(--ink)}
+
+  /* Controles */
+  .controls{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:0 0 18px}
+  .ctrl{background:#fbfcff;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .ctrl .row{display:flex;justify-content:space-between;align-items:baseline}
+  .ctrl label{font-weight:700;font-size:.9rem}
+  .ctrl .val{font-variant-numeric:tabular-nums;font-weight:800;font-size:1.1rem;color:var(--accent)}
+  .ctrl .val small{font-weight:600;color:var(--ink-soft);font-size:.78rem}
+  input[type=range]{width:100%;margin:10px 0 0;accent-color:var(--accent);height:22px;cursor:pointer}
+
+  /* Cuadrícula principal */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:760px){.grid,.controls{grid-template-columns:1fr}}
+  .box{background:#fbfcff;border:1px solid var(--line);border-radius:12px;padding:12px 12px 8px;display:flex;flex-direction:column}
+  .box h3{margin:0 0 8px;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);font-weight:800}
+  .viewport{position:relative;width:100%;aspect-ratio:1/1;border-radius:10px;overflow:hidden;background:radial-gradient(circle at 50% 35%,#ffffff,#eef2fb)}
+  .viewport canvas{display:block;width:100%!important;height:100%!important;touch-action:none}
+  .hint{font-size:.74rem;color:var(--ink-soft);margin:8px 2px 2px;text-align:center}
+  svg.net{width:100%;height:auto;display:block}
+
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin:10px 2px 0;font-size:.8rem;color:var(--ink-soft)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .sw{width:13px;height:13px;border-radius:3px;display:inline-block}
+  .sw.l{background:var(--lateral-2);border:1.5px solid var(--lateral)}
+  .sw.b{background:var(--base-2);border:1.5px solid var(--base)}
+
+  /* Panel de fórmulas */
+  .formulas{margin-top:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:760px){.formulas{grid-template-columns:1fr}}
+  .fcard{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fff}
+  .fcard.lat{border-top:4px solid var(--lateral)}
+  .fcard.tot{border-top:4px solid var(--accent)}
+  .fcard.vol{border-top:4px solid var(--base)}
+  .fcard.gen{border-top:4px solid #b08900}
+  .fcard .name{font-weight:800;font-size:.86rem;margin:0 0 8px}
+  .fcard .gform{font-size:1.02rem;font-weight:700;color:var(--ink)}
+  .fcard .step{font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+    font-size:.92rem;color:var(--ink-soft);margin-top:6px;word-break:break-word}
+  .fcard .res{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:1.18rem;font-weight:800;margin-top:8px}
+  .fcard.lat .res{color:var(--lateral)}
+  .fcard.tot .res{color:var(--accent)}
+  .fcard.vol .res{color:var(--base)}
+  .fcard.gen .res{color:#b08900}
+  .vsep{color:var(--line)}
+
+  .note{margin-top:16px;font-size:.85rem;color:var(--ink-soft);background:#fbfcff;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  footer{margin-top:26px;font-size:.78rem;color:var(--ink-soft);text-align:center}
+  sup{font-size:.62em}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <p class="eyebrow">Matemáticas · 3.º ESO · Geometría en el espacio</p>
+    <h1>Área y volumen del cilindro y del cono</h1>
+    <p class="sub">Mueve los deslizadores y observa a la vez la figura en 3D, su desarrollo plano y el cálculo paso a paso.</p>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Figuras">
+    <button class="tab" role="tab" data-fig="cilindro" aria-selected="true" aria-controls="panel-cilindro" id="tab-cilindro"><span class="ico"></span>Cilindro</button>
+    <button class="tab" role="tab" data-fig="cono" aria-selected="false" aria-controls="panel-cono" id="tab-cono"><span class="ico"></span>Cono</button>
+  </div>
+
+  <!-- ============ CILINDRO ============ -->
+  <section class="panel active" id="panel-cilindro" role="tabpanel" aria-labelledby="tab-cilindro">
+    <p class="lead">El <b>área lateral</b> del cilindro es el <b>rectángulo</b> que se forma al desenrollar la superficie curva.
+      Su base mide <b>2·π·r</b> (la longitud de la circunferencia de la tapa) y su altura es <b>h</b>. Por eso A<sub>L</sub> = 2·π·r·h.</p>
+
+    <div class="controls">
+      <div class="ctrl">
+        <div class="row"><label for="cil-r">Radio (r)</label><span class="val"><span id="cil-r-val">3</span><small> cm</small></span></div>
+        <input type="range" id="cil-r" min="1" max="10" step="0.5" value="3">
+      </div>
+      <div class="ctrl">
+        <div class="row"><label for="cil-h">Altura (h)</label><span class="val"><span id="cil-h-val">10</span><small> cm</small></span></div>
+        <input type="range" id="cil-h" min="1" max="15" step="0.5" value="10">
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="box">
+        <h3>Figura en 3D · gírala con el ratón</h3>
+        <div class="viewport"><canvas id="cil-canvas"></canvas></div>
+        <p class="hint">Gira sola; arrastra para girarla tú.</p>
+      </div>
+      <div class="box">
+        <h3>Desarrollo plano</h3>
+        <svg class="net" id="cil-net" viewBox="0 0 420 380" role="img" aria-label="Desarrollo del cilindro: dos círculos y un rectángulo"></svg>
+        <div class="legend">
+          <span><i class="sw l"></i> Superficie lateral (rectángulo)</span>
+          <span><i class="sw b"></i> Bases (dos círculos)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="formulas">
+      <div class="fcard lat">
+        <p class="name">Área lateral</p>
+        <div class="gform">A<sub>L</sub> = 2 · π · r · h</div>
+        <div class="step" id="cil-AL-step"></div>
+        <div class="res" id="cil-AL-res"></div>
+      </div>
+      <div class="fcard tot">
+        <p class="name">Área total</p>
+        <div class="gform">A<sub>T</sub> = 2 · π · r · (r + h)</div>
+        <div class="step" id="cil-AT-step"></div>
+        <div class="res" id="cil-AT-res"></div>
+      </div>
+      <div class="fcard vol">
+        <p class="name">Volumen</p>
+        <div class="gform">V = π · r<sup>2</sup> · h</div>
+        <div class="step" id="cil-V-step"></div>
+        <div class="res" id="cil-V-res"></div>
+      </div>
+    </div>
+    <p class="note">El área total suma el rectángulo lateral más las dos tapas circulares: A<sub>T</sub> = 2·π·r·h + 2·π·r<sup>2</sup> = 2·π·r·(r + h).</p>
+  </section>
+
+  <!-- ============ CONO ============ -->
+  <section class="panel" id="panel-cono" role="tabpanel" aria-labelledby="tab-cono">
+    <p class="lead">El <b>área lateral</b> del cono es el <b>sector circular</b> que se forma al desenrollar la superficie curva.
+      El radio de ese sector es la <b>generatriz g</b> (la línea que va del vértice al borde de la base) y su arco mide <b>2·π·r</b>. Por eso A<sub>L</sub> = π·r·g.</p>
+
+    <div class="controls">
+      <div class="ctrl">
+        <div class="row"><label for="con-r">Radio (r)</label><span class="val"><span id="con-r-val">3</span><small> cm</small></span></div>
+        <input type="range" id="con-r" min="1" max="10" step="0.5" value="3">
+      </div>
+      <div class="ctrl">
+        <div class="row"><label for="con-h">Altura (h)</label><span class="val"><span id="con-h-val">4</span><small> cm</small></span></div>
+        <input type="range" id="con-h" min="1" max="15" step="0.5" value="4">
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="box">
+        <h3>Figura en 3D · gírala con el ratón</h3>
+        <div class="viewport"><canvas id="con-canvas"></canvas></div>
+        <p class="hint">Gira sola; arrastra para girarla tú. Verás r, h y la generatriz g.</p>
+      </div>
+      <div class="box">
+        <h3>Desarrollo plano</h3>
+        <svg class="net" id="con-net" viewBox="0 0 420 380" role="img" aria-label="Desarrollo del cono: un círculo y un sector circular"></svg>
+        <div class="legend">
+          <span><i class="sw l"></i> Superficie lateral (sector, radio g)</span>
+          <span><i class="sw b"></i> Base (círculo)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="formulas">
+      <div class="fcard gen">
+        <p class="name">Generatriz</p>
+        <div class="gform">g = √(r<sup>2</sup> + h<sup>2</sup>)</div>
+        <div class="step" id="con-g-step"></div>
+        <div class="res" id="con-g-res"></div>
+      </div>
+      <div class="fcard lat">
+        <p class="name">Área lateral</p>
+        <div class="gform">A<sub>L</sub> = π · r · g</div>
+        <div class="step" id="con-AL-step"></div>
+        <div class="res" id="con-AL-res"></div>
+      </div>
+      <div class="fcard vol">
+        <p class="name">Volumen</p>
+        <div class="gform">V = (1/3) · π · r<sup>2</sup> · h</div>
+        <div class="step" id="con-V-step"></div>
+        <div class="res" id="con-V-res"></div>
+      </div>
+    </div>
+    <div class="formulas" style="grid-template-columns:1fr;margin-top:14px">
+      <div class="fcard tot">
+        <p class="name">Área total</p>
+        <div class="gform">A<sub>T</sub> = π · r · (r + g)</div>
+        <div class="step" id="con-AT-step"></div>
+        <div class="res" id="con-AT-res"></div>
+      </div>
+    </div>
+    <p class="note">El área total suma el sector lateral más la base circular: A<sub>T</sub> = π·r·g + π·r<sup>2</sup> = π·r·(r + g).</p>
+  </section>
+
+  <footer>Recurso para la unidad de geometría en el espacio · Decreto 65/2022, Comunidad de Madrid · Resultados redondeados a 2 decimales.</footer>
+</div>
+
+<script>
+"use strict";
+const PI = Math.PI;
+const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---- formato español: 2 decimales y coma ---- */
+function fmt(x){ return x.toFixed(2).replace('.', ','); }
+
+/* =====================================================================
+   ESCENA 3D (Three.js) — fábrica reutilizable para cilindro y cono
+   ===================================================================== */
+function crearEscena3D(canvas, tipo){
+  const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+  camera.position.set(0, 1.6, 9);
+  camera.lookAt(0,0,0);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+  const dir = new THREE.DirectionalLight(0xffffff, 0.7); dir.position.set(4,7,6); scene.add(dir);
+  const dir2 = new THREE.DirectionalLight(0xffffff, 0.25); dir2.position.set(-5,-2,-4); scene.add(dir2);
+
+  const grupo = new THREE.Group();
+  scene.add(grupo);
+
+  const matLateral = new THREE.MeshStandardMaterial({color:0x1f8a8c, roughness:.55, metalness:.05});
+  const matBase    = new THREE.MeshStandardMaterial({color:0xe26a4f, roughness:.55, metalness:.05});
+
+  let malla=null, lineas=[], etiquetas=[];
+
+  function spriteTexto(txt, color){
+    const c=document.createElement('canvas'); c.width=256; c.height=128;
+    const g=c.getContext('2d');
+    g.font='bold 84px ui-sans-serif,system-ui,Arial';
+    g.textAlign='center'; g.textBaseline='middle';
+    g.lineWidth=10; g.strokeStyle='rgba(255,255,255,.95)'; g.strokeText(txt,128,64);
+    g.fillStyle=color; g.fillText(txt,128,64);
+    const tex=new THREE.CanvasTexture(c);
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex, depthTest:false, transparent:true}));
+    sp.scale.set(0.95,0.48,1);
+    return sp;
+  }
+  function linea(p1,p2,color){
+    const geo=new THREE.BufferGeometry().setFromPoints([p1,p2]);
+    return new THREE.Line(geo, new THREE.LineBasicMaterial({color}));
+  }
+
+  function limpiar(){
+    if(malla){ grupo.remove(malla); malla.geometry.dispose(); }
+    lineas.forEach(l=>{grupo.remove(l); l.geometry.dispose();});
+    etiquetas.forEach(e=>grupo.remove(e));
+    lineas=[]; etiquetas=[];
+  }
+
+  // construye la figura ajustada a un tamaño constante para que siempre se vea bien
+  function construir(r, h, g){
+    limpiar();
+    const ext = Math.max(2*r, h);
+    const s = 4 / ext;               // factor de escala visual
+    const rs = r*s, hs = h*s;
+
+    if(tipo==='cilindro'){
+      const geo=new THREE.CylinderGeometry(rs, rs, hs, 64);
+      malla=new THREE.Mesh(geo, [matLateral, matBase, matBase]); // lado, tapa sup., tapa inf.
+    } else {
+      const geo=new THREE.ConeGeometry(rs, hs, 64);
+      malla=new THREE.Mesh(geo, [matLateral, matBase]);          // lado, base
+    }
+    grupo.add(malla);
+
+    const yB=-hs/2, yT=hs/2;
+    // radio (en la base)
+    const lr=linea(new THREE.Vector3(0,yB,0), new THREE.Vector3(rs,yB,0), 0x14213d);
+    lineas.push(lr); grupo.add(lr);
+    const er=spriteTexto('r','#14213d'); er.position.set(rs*0.55, yB-0.42, 0.05); etiquetas.push(er); grupo.add(er);
+
+    // altura (lateral, fuera de la figura)
+    const xH=rs+0.55;
+    const lh=linea(new THREE.Vector3(xH,yB,0), new THREE.Vector3(xH,yT,0), 0x14213d);
+    lineas.push(lh); grupo.add(lh);
+    const eh=spriteTexto('h','#14213d'); eh.position.set(xH+0.5, 0, 0.05); etiquetas.push(eh); grupo.add(eh);
+
+    if(tipo==='cono'){
+      // generatriz: del vértice (arriba) al borde de la base
+      const lg=linea(new THREE.Vector3(0,yT,0), new THREE.Vector3(rs,yB,0), 0xb08900);
+      lineas.push(lg); grupo.add(lg);
+      const eg=spriteTexto('g','#8a6a00'); eg.position.set(rs*0.62, hs*0.18, 0.15); etiquetas.push(eg); grupo.add(eg);
+    }
+  }
+
+  // rotación: automática + arrastre
+  let rotY=0.5, rotX=0.25, arrastrando=false, lastX=0, lastY=0, autoOff=false, reanudar=0;
+  function abajo(e){ arrastrando=true; autoOff=true;
+    const p=e.touches?e.touches[0]:e; lastX=p.clientX; lastY=p.clientY; }
+  function mover(e){ if(!arrastrando) return;
+    const p=e.touches?e.touches[0]:e;
+    rotY += (p.clientX-lastX)*0.01;
+    rotX += (p.clientY-lastY)*0.01;
+    rotX = Math.max(-1.2, Math.min(1.2, rotX));
+    lastX=p.clientX; lastY=p.clientY; if(e.cancelable) e.preventDefault(); }
+  function arriba(){ arrastrando=false; reanudar=Date.now()+1500; }
+  canvas.addEventListener('mousedown',abajo); window.addEventListener('mousemove',mover); window.addEventListener('mouseup',arriba);
+  canvas.addEventListener('touchstart',abajo,{passive:true}); canvas.addEventListener('touchmove',mover,{passive:false}); canvas.addEventListener('touchend',arriba);
+
+  function redimensionar(){
+    const w=canvas.clientWidth, hh=canvas.clientHeight;
+    if(w===0||hh===0) return;
+    renderer.setSize(w,hh,false);
+    camera.aspect=w/hh; camera.updateProjectionMatrix();
+  }
+
+  function animar(){
+    requestAnimationFrame(animar);
+    if(!reduceMotion && !arrastrando && Date.now()>reanudar) rotY+=0.006;
+    grupo.rotation.y=rotY; grupo.rotation.x=rotX;
+    redimensionar();
+    if(canvas.clientWidth>0) renderer.render(scene,camera);
+  }
+  animar();
+
+  return { construir, redimensionar };
+}
+
+/* =====================================================================
+   DESARROLLO PLANO (SVG)
+   ===================================================================== */
+const VB=420, pad=34; // viewBox 420x380
+
+// ajusta una caja [minx,miny,maxx,maxy] en cm al viewBox y devuelve {s, tx, ty}
+function ajustar(minx,miny,maxx,maxy){
+  const w=maxx-minx, h=maxy-miny;
+  const s=Math.min((VB-2*pad)/w, (380-2*pad)/h);
+  const tx=pad - minx*s + ((VB-2*pad)-w*s)/2;
+  const ty=pad - miny*s + ((380-2*pad)-h*s)/2;
+  return {s,tx,ty};
+}
+function lbl(x,y,txt,opts){ opts=opts||{};
+  return `<text x="${x}" y="${y}" font-size="${opts.size||14}" font-weight="${opts.w||700}"
+    fill="${opts.fill||'#14213d'}" text-anchor="${opts.anchor||'middle'}"
+    font-family="ui-sans-serif,system-ui,Arial">${txt}</text>`;
+}
+
+function dibujarCilindroNet(svg, r, h){
+  const circ=2*PI*r;                 // base del rectángulo
+  // composición en cm: círculo arriba, rectángulo, círculo abajo (centrados en x=0)
+  const halfW=Math.max(circ/2, r);
+  const minx=-halfW, maxx=halfW;
+  const top = h/2 + 2*r;             // y hacia arriba positivo; usaremos y hacia abajo en SVG
+  const miny=-(h/2+2*r), maxy=(h/2+2*r);
+  const {s,tx,ty}=ajustar(minx,miny,maxx,maxy);
+  const X=x=>tx+x*s, Y=y=>ty+y*s;
+
+  const rectX=X(-circ/2), rectY=Y(-h/2), rectW=circ*s, rectH=h*s;
+  const cTopY=Y(-h/2-r), cBotY=Y(h/2+r), rS=r*s;
+
+  let out='';
+  // rectángulo (lateral)
+  out+=`<rect x="${rectX}" y="${rectY}" width="${rectW}" height="${rectH}"
+        fill="#9fe0e0" stroke="#1f8a8c" stroke-width="2" rx="2"/>`;
+  // círculos (bases)
+  out+=`<circle cx="${X(0)}" cy="${cTopY}" r="${rS}" fill="#f6c4b6" stroke="#e26a4f" stroke-width="2"/>`;
+  out+=`<circle cx="${X(0)}" cy="${cBotY}" r="${rS}" fill="#f6c4b6" stroke="#e26a4f" stroke-width="2"/>`;
+
+  // cotas
+  // base del rectángulo = 2πr
+  out+=`<line x1="${rectX}" y1="${rectY+rectH+14}" x2="${rectX+rectW}" y2="${rectY+rectH+14}" stroke="#1f8a8c" stroke-width="1.5"/>`;
+  out+=lbl(X(0), rectY+rectH+30, `2·π·r = ${fmt(circ)} cm`, {fill:'#1f8a8c'});
+  // altura h del rectángulo
+  out+=`<line x1="${rectX-12}" y1="${rectY}" x2="${rectX-12}" y2="${rectY+rectH}" stroke="#1f8a8c" stroke-width="1.5"/>`;
+  out+=lbl(rectX-16, (rectY+rectY+rectH)/2+4, `h = ${fmt(h)}`, {anchor:'end',fill:'#1f8a8c'});
+  // radio de las bases
+  out+=lbl(X(0), cTopY+4, `r = ${fmt(r)}`, {fill:'#a8412c',size:12});
+  svg.innerHTML=out;
+}
+
+function dibujarConoNet(svg, r, h, g){
+  const ang = 2*PI*r/g;              // ángulo del sector (rad)
+  // construimos en cm: vértice en (0,0), sector abriéndose hacia abajo (+y)
+  // bisectriz hacia abajo => ángulos a1,a2 alrededor de 90°
+  const a1 = Math.PI/2 - ang/2, a2 = Math.PI/2 + ang/2;
+  const p1={x:g*Math.cos(a1), y:g*Math.sin(a1)};
+  const p2={x:g*Math.cos(a2), y:g*Math.sin(a2)};
+  // muestreo del arco para calcular la caja envolvente
+  let minx=0,miny=0,maxx=0,maxy=0;
+  const pts=[{x:0,y:0},p1,p2];
+  const N=40;
+  for(let i=0;i<=N;i++){const a=a1+(a2-a1)*i/N; pts.push({x:g*Math.cos(a),y:g*Math.sin(a)});}
+  // base (círculo) colocada bajo el arco, centrada en la bisectriz
+  const baseCx=0, baseCy=g + r + Math.max(0.6, g*0.12);
+  pts.push({x:baseCx-r,y:baseCy-r},{x:baseCx+r,y:baseCy+r});
+  pts.forEach(p=>{minx=Math.min(minx,p.x);miny=Math.min(miny,p.y);maxx=Math.max(maxx,p.x);maxy=Math.max(maxy,p.y);});
+
+  const {s,tx,ty}=ajustar(minx,miny,maxx,maxy);
+  const X=x=>tx+x*s, Y=y=>ty+y*s;
+  const large = ang>Math.PI ? 1 : 0;
+
+  let out='';
+  // sector (lateral)
+  out+=`<path d="M ${X(0)} ${Y(0)} L ${X(p1.x)} ${Y(p1.y)} A ${g*s} ${g*s} 0 ${large} 1 ${X(p2.x)} ${Y(p2.y)} Z"
+        fill="#9fe0e0" stroke="#1f8a8c" stroke-width="2"/>`;
+  // base (círculo)
+  out+=`<circle cx="${X(baseCx)}" cy="${Y(baseCy)}" r="${r*s}" fill="#f6c4b6" stroke="#e26a4f" stroke-width="2"/>`;
+  out+=lbl(X(baseCx), Y(baseCy)+4, `r = ${fmt(r)}`, {fill:'#a8412c',size:12});
+
+  // etiqueta generatriz g sobre uno de los lados rectos
+  const mx=(0+p1.x)/2, my=(0+p1.y)/2;
+  out+=lbl(X(mx)-6, Y(my), `g = ${fmt(g)} cm`, {anchor:'end',fill:'#8a6a00'});
+  // etiqueta del arco = 2πr cerca del punto medio del arco (bisectriz, abajo)
+  const arcMid={x:g*Math.cos(Math.PI/2), y:g*Math.sin(Math.PI/2)};
+  out+=lbl(X(arcMid.x), Y(arcMid.y)+18, `arco = 2·π·r = ${fmt(2*PI*r)} cm`, {fill:'#1f8a8c',size:12.5});
+
+  svg.innerHTML=out;
+}
+
+/* =====================================================================
+   CÁLCULOS Y ENLACE CON LA INTERFAZ
+   ===================================================================== */
+function set(id,txt){ const el=document.getElementById(id); if(el) el.innerHTML=txt; }
+
+// ---- CILINDRO ----
+const cil3d = crearEscena3D(document.getElementById('cil-canvas'),'cilindro');
+const cilNet = document.getElementById('cil-net');
+function actualizarCilindro(){
+  const r=parseFloat(document.getElementById('cil-r').value);
+  const h=parseFloat(document.getElementById('cil-h').value);
+  document.getElementById('cil-r-val').textContent=fmt(r);
+  document.getElementById('cil-h-val').textContent=fmt(h);
+
+  const AL=2*PI*r*h, AT=2*PI*r*(r+h), V=PI*r*r*h;
+
+  set('cil-AL-step', `= 2 · π · ${fmt(r)} · ${fmt(h)}`);
+  set('cil-AL-res',  `= ${fmt(AL)} cm<sup>2</sup>`);
+  set('cil-AT-step', `= 2 · π · ${fmt(r)} · (${fmt(r)} + ${fmt(h)})`);
+  set('cil-AT-res',  `= ${fmt(AT)} cm<sup>2</sup>`);
+  set('cil-V-step',  `= π · ${fmt(r)}<sup>2</sup> · ${fmt(h)}`);
+  set('cil-V-res',   `= ${fmt(V)} cm<sup>3</sup>`);
+
+  cil3d.construir(r,h);
+  dibujarCilindroNet(cilNet, r, h);
+}
+
+// ---- CONO ----
+const con3d = crearEscena3D(document.getElementById('con-canvas'),'cono');
+const conNet = document.getElementById('con-net');
+function actualizarCono(){
+  const r=parseFloat(document.getElementById('con-r').value);
+  const h=parseFloat(document.getElementById('con-h').value);
+  document.getElementById('con-r-val').textContent=fmt(r);
+  document.getElementById('con-h-val').textContent=fmt(h);
+
+  const g=Math.sqrt(r*r+h*h);
+  const AL=PI*r*g, AT=PI*r*(r+g), V=(1/3)*PI*r*r*h;
+
+  set('con-g-step',  `= √(${fmt(r)}<sup>2</sup> + ${fmt(h)}<sup>2</sup>) = √${fmt(r*r+h*h)}`);
+  set('con-g-res',   `= ${fmt(g)} cm`);
+  set('con-AL-step', `= π · ${fmt(r)} · ${fmt(g)}`);
+  set('con-AL-res',  `= ${fmt(AL)} cm<sup>2</sup>`);
+  set('con-AT-step', `= π · ${fmt(r)} · (${fmt(r)} + ${fmt(g)})`);
+  set('con-AT-res',  `= ${fmt(AT)} cm<sup>2</sup>`);
+  set('con-V-step',  `= (1/3) · π · ${fmt(r)}<sup>2</sup> · ${fmt(h)}`);
+  set('con-V-res',   `= ${fmt(V)} cm<sup>3</sup>`);
+
+  con3d.construir(r,h,g);
+  dibujarConoNet(conNet, r, h, g);
+}
+
+['cil-r','cil-h'].forEach(id=>document.getElementById(id).addEventListener('input',actualizarCilindro));
+['con-r','con-h'].forEach(id=>document.getElementById(id).addEventListener('input',actualizarCono));
+
+/* ---- pestañas ---- */
+const tabs=document.querySelectorAll('.tab');
+tabs.forEach(t=>t.addEventListener('click',()=>{
+  tabs.forEach(o=>o.setAttribute('aria-selected', o===t ? 'true':'false'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  const fig=t.dataset.fig;
+  document.getElementById('panel-'+fig).classList.add('active');
+  // reajustar el lienzo 3D que estaba oculto
+  setTimeout(()=>{ (fig==='cilindro'?cil3d:con3d).redimensionar(); }, 30);
+}));
+
+/* ---- arranque ---- */
+actualizarCilindro();
+actualizarCono();
+</script>
+</body>
+</html>

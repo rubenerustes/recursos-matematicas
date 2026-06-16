@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La esfera · Área y volumen · 3.º ESO</title>
+<style>
+  :root{
+    --paper:#F2F4F1;
+    --ink:#1B2A33;
+    --ink-soft:#4A5B63;
+    --line:#C9D3CE;
+    --teal:#1E9E94;
+    --teal-bright:#5FE0D4;
+    --amber:#E0922F;
+    --coral:#EF6C5A;
+    --panel:#FFFFFF;
+    --night-a:#16263d;
+    --night-b:#0b1626;
+    --mono: ui-monospace, "Cascadia Code", "SFMono-Regular", Menlo, Consolas, monospace;
+    --sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.5;
+    /* faint graph-paper grid, echoing a geometry notebook */
+    background-image:
+      linear-gradient(rgba(27,42,51,0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(27,42,51,0.035) 1px, transparent 1px);
+    background-size:26px 26px;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:26px 20px 60px;}
+
+  header{margin-bottom:22px;}
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--teal);
+    display:flex;align-items:center;gap:10px;
+    margin-bottom:8px;
+  }
+  .eyebrow::before{content:"";flex:0 0 28px;height:0;border-top:2px dashed var(--amber);}
+  h1{
+    margin:0;
+    font-size:clamp(30px,5vw,46px);
+    font-weight:800;
+    letter-spacing:-.02em;
+    line-height:1.02;
+  }
+  h1 span{color:var(--teal);}
+  .sub{margin:8px 0 0;color:var(--ink-soft);max-width:60ch;font-size:15px;}
+
+  .grid{
+    display:grid;
+    grid-template-columns: 1.25fr 1fr;
+    gap:20px;
+    align-items:start;
+  }
+  @media (max-width:880px){ .grid{grid-template-columns:1fr;} }
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    overflow:hidden;
+  }
+  .card-head{
+    padding:12px 16px;
+    border-bottom:1px solid var(--line);
+    display:flex;align-items:baseline;gap:10px;justify-content:space-between;
+  }
+  .card-head .tag{
+    font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  .card-head h2{margin:0;font-size:16px;font-weight:700;}
+
+  /* ---- 3D viewport ---- */
+  #viewport{
+    position:relative;
+    width:100%;
+    aspect-ratio: 4 / 3.2;
+    background:radial-gradient(120% 120% at 50% 20%, var(--night-a), var(--night-b));
+    cursor:grab;
+    touch-action:none;
+  }
+  #viewport.grabbing{cursor:grabbing;}
+  #viewport canvas{display:block;width:100%;height:100%;}
+  .hint{
+    position:absolute;left:12px;bottom:10px;
+    font-family:var(--mono);font-size:11px;letter-spacing:.05em;
+    color:rgba(255,255,255,.6);
+    pointer-events:none;
+  }
+  .legend{
+    position:absolute;right:12px;top:10px;
+    display:flex;flex-direction:column;gap:6px;
+    font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.85);
+    pointer-events:none;
+  }
+  .legend span{display:flex;align-items:center;gap:7px;}
+  .swatch{width:16px;height:0;border-top:3px solid;}
+  .swatch.solid{border-top-style:solid;}
+  .swatch.dashed{border-top-style:dashed;}
+
+  /* ---- controls ---- */
+  .controls{padding:16px;border-top:1px solid var(--line);background:#fbfcfb;}
+  .slider-row{display:flex;align-items:center;gap:14px;}
+  .slider-row label{font-weight:700;font-family:var(--mono);font-size:14px;white-space:nowrap;}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;
+    flex:1;height:6px;border-radius:6px;
+    background:linear-gradient(90deg,var(--teal),var(--teal-bright));
+    outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:22px;height:22px;border-radius:50%;
+    background:#fff;border:3px solid var(--teal);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:22px;height:22px;border-radius:50%;background:#fff;border:3px solid var(--teal);cursor:pointer;
+  }
+  input[type=range]:focus-visible{box-shadow:0 0 0 3px rgba(30,158,148,.35);}
+  .rval{
+    font-family:var(--mono);font-weight:700;font-size:18px;
+    background:var(--ink);color:#fff;border-radius:8px;padding:4px 10px;min-width:84px;text-align:center;
+  }
+  .toggles{display:flex;flex-wrap:wrap;gap:16px;margin-top:14px;}
+  .toggles label{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-soft);cursor:pointer;}
+  .toggles input{accent-color:var(--teal);width:16px;height:16px;}
+
+  /* ---- formula panel ---- */
+  .col-right{display:flex;flex-direction:column;gap:20px;}
+  .formula{padding:16px;}
+  .formula h3{
+    margin:0 0 4px;font-size:14px;font-family:var(--mono);letter-spacing:.04em;
+    text-transform:uppercase;color:var(--teal);
+  }
+  .formula h3.vol{color:var(--coral);}
+  .steps{font-family:var(--mono);font-size:15px;margin:6px 0 0;}
+  .steps .line{
+    display:flex;align-items:baseline;gap:8px;padding:3px 0;color:var(--ink-soft);
+  }
+  .steps .line.result{
+    color:var(--ink);font-weight:700;font-size:18px;
+    border-top:1px dashed var(--line);margin-top:6px;padding-top:8px;
+  }
+  .steps .lhs{color:var(--ink);font-weight:700;flex:0 0 24px;}
+  .hl{color:var(--teal);font-weight:700;}
+  .hl.vol{color:var(--coral);}
+  .divider{height:1px;background:var(--line);margin:16px 0;}
+
+  /* ---- comparison panel ---- */
+  .cmp{padding:16px;}
+  .cmp p.lead{margin:0 0 14px;font-size:14px;color:var(--ink-soft);}
+  .bar-block{margin-bottom:16px;}
+  .bar-label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;}
+  .bar-label b{font-family:var(--mono);}
+  .bar-track{background:#eef1ee;border-radius:8px;height:30px;position:relative;overflow:hidden;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:7px;transition:width .15s ease;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;color:#fff;font-family:var(--mono);font-size:12px;font-weight:700;}
+  .bar-fill.cyl{background:repeating-linear-gradient(45deg,var(--amber),var(--amber) 7px,#e8a44e 7px,#e8a44e 14px);}
+  .bar-fill.sph{background:var(--teal);}
+  .ratio-badge{
+    display:inline-flex;align-items:center;gap:8px;
+    background:var(--ink);color:#fff;border-radius:10px;padding:8px 14px;font-family:var(--mono);
+    font-size:14px;margin-top:4px;
+  }
+  .ratio-badge .frac{font-size:20px;font-weight:800;color:var(--teal-bright);}
+
+  /* ---- explanation ---- */
+  .explain{margin-top:20px;}
+  .explain .card-head h2{font-size:16px;}
+  .explain-body{padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media (max-width:880px){ .explain-body{grid-template-columns:1fr;} }
+  .explain-body h4{margin:0 0 6px;font-size:15px;display:flex;align-items:center;gap:8px;}
+  .num{
+    font-family:var(--mono);font-weight:800;width:26px;height:26px;border-radius:50%;
+    display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:13px;flex:0 0 26px;
+  }
+  .num.a{background:var(--teal);}
+  .num.b{background:var(--coral);}
+  .explain-body p{margin:0;font-size:14.5px;color:var(--ink-soft);}
+  .explain-body code{font-family:var(--mono);background:#eef1ee;padding:1px 5px;border-radius:5px;color:var(--ink);}
+
+  .check{
+    margin-top:18px;border:1px dashed var(--amber);border-radius:12px;background:#fdf6ec;
+    padding:14px 16px;font-size:14px;
+  }
+  .check b{font-family:var(--mono);}
+  .check .ok{color:var(--teal);font-weight:700;}
+
+  footer{margin-top:28px;font-size:12px;color:var(--ink-soft);text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Geometría en el espacio · 3.º ESO</div>
+    <h1>La <span>esfera</span>: área y volumen</h1>
+    <p class="sub">Mueve el deslizador para cambiar el radio <b>r</b>. La esfera 3D gira sola, pero también puedes girarla arrastrando con el ratón o el dedo. Observa cómo cambian las fórmulas y compárala con el cilindro que la rodea.</p>
+  </header>
+
+  <div class="grid">
+    <!-- LEFT: 3D + controls -->
+    <div class="card">
+      <div class="card-head">
+        <h2>Esfera y cilindro circunscrito</h2>
+        <span class="tag">Vista 3D</span>
+      </div>
+      <div id="viewport">
+        <div class="legend">
+          <span><i class="swatch solid" style="border-color:#5FE0D4"></i>círculo máximo</span>
+          <span><i class="swatch solid" style="border-color:#ffffff"></i>radio r</span>
+          <span><i class="swatch dashed" style="border-color:#E0922F"></i>cilindro</span>
+        </div>
+        <div class="hint">Arrastra para girar · gira sola</div>
+      </div>
+      <div class="controls">
+        <div class="slider-row">
+          <label for="rSlider">Radio r</label>
+          <input type="range" id="rSlider" min="1" max="20" step="0.5" value="10">
+          <div class="rval" id="rValue">10 u</div>
+        </div>
+        <div class="toggles">
+          <label><input type="checkbox" id="tCyl" checked> Mostrar cilindro</label>
+          <label><input type="checkbox" id="tCircle" checked> Círculo máximo</label>
+          <label><input type="checkbox" id="tSpin" checked> Rotación automática</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: formulas + comparison -->
+    <div class="col-right">
+      <div class="card">
+        <div class="card-head">
+          <h2>Fórmulas paso a paso</h2>
+          <span class="tag">en tiempo real</span>
+        </div>
+        <div class="formula">
+          <h3>Área de la superficie</h3>
+          <div class="steps" id="areaSteps"></div>
+          <div class="divider"></div>
+          <h3 class="vol">Volumen</h3>
+          <div class="steps" id="volSteps"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Esfera frente al cilindro</h2>
+          <span class="tag">Arquímedes</span>
+        </div>
+        <div class="cmp">
+          <p class="lead">El cilindro que rodea a la esfera tiene radio <b>r</b> y altura <b>2r</b>. Compara sus medidas:</p>
+
+          <div class="bar-block">
+            <div class="bar-label"><span><b>Área</b> del cilindro (total)</span><b id="cylAreaTxt"></b></div>
+            <div class="bar-track"><div class="bar-fill cyl" style="width:100%">6·π·r²</div></div>
+          </div>
+          <div class="bar-block">
+            <div class="bar-label"><span><b>Área</b> de la esfera</span><b id="sphAreaTxt"></b></div>
+            <div class="bar-track"><div class="bar-fill sph" id="sphAreaBar" style="width:66.7%">4·π·r²</div></div>
+          </div>
+          <div class="ratio-badge">Área esfera = <span class="frac">2/3</span> del área del cilindro</div>
+
+          <div class="divider"></div>
+
+          <div class="bar-block">
+            <div class="bar-label"><span><b>Volumen</b> del cilindro</span><b id="cylVolTxt"></b></div>
+            <div class="bar-track"><div class="bar-fill cyl" style="width:100%">2·π·r³</div></div>
+          </div>
+          <div class="bar-block">
+            <div class="bar-label"><span><b>Volumen</b> de la esfera</span><b id="sphVolTxt"></b></div>
+            <div class="bar-track"><div class="bar-fill sph" id="sphVolBar" style="width:66.7%">(4/3)·π·r³</div></div>
+          </div>
+          <div class="ratio-badge">Volumen esfera = <span class="frac">2/3</span> del volumen del cilindro</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- explanation -->
+  <div class="card explain">
+    <div class="card-head">
+      <h2>¿Por qué salen estas fórmulas?</h2>
+      <span class="tag">la idea</span>
+    </div>
+    <div class="explain-body">
+      <div>
+        <h4><span class="num a">1</span> El área: cuatro círculos</h4>
+        <p>El área de la esfera equivale a <b>cuatro círculos máximos</b> de radio r. El área de un círculo es <code>π·r²</code>, así que cuatro de ellos dan <code>4·π·r²</code>. Por eso <b>A = 4πr²</b>.</p>
+      </div>
+      <div>
+        <h4><span class="num b">2</span> El volumen: dos tercios</h4>
+        <p>El volumen de la esfera es exactamente <b>dos tercios</b> del volumen del cilindro que la circunscribe (el que tiene radio r y altura 2r). Como ese cilindro mide <code>2·π·r³</code>, sus dos tercios son <code>(4/3)·π·r³</code>. Por eso <b>V = (4/3)πr³</b>.</p>
+      </div>
+    </div>
+    <div class="check" style="margin:0 16px 16px;">
+      <b>Comprobación</b> · Una esfera de radio <b>r = 10</b> tiene
+      área <span class="ok">≈ 1256,64 u²</span> y volumen <span class="ok">≈ 4188,79 u³</span>.
+      Pon el deslizador en 10 y mira el panel de fórmulas: deben coincidir.
+      <span style="color:var(--ink-soft)"> (Si piensas en kilómetros, serían 1256,64 km² y 4188,79 km³.)</span>
+    </div>
+  </div>
+
+  <footer>Recurso interactivo de aula · Geometría del espacio · Las unidades (u) pueden ser cm, m, km… según el problema.</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  // ---------- number formatting (Spanish: decimal comma) ----------
+  function fmt(x, dec){
+    return x.toLocaleString('es-ES', {minimumFractionDigits:dec, maximumFractionDigits:dec});
+  }
+  function fmtAuto(x){
+    // up to 2 decimals, no trailing zeros forced
+    return x.toLocaleString('es-ES', {maximumFractionDigits:2});
+  }
+
+  // ---------- DOM ----------
+  var slider   = document.getElementById('rSlider');
+  var rValue   = document.getElementById('rValue');
+  var areaSteps= document.getElementById('areaSteps');
+  var volSteps = document.getElementById('volSteps');
+  var tCyl     = document.getElementById('tCyl');
+  var tCircle  = document.getElementById('tCircle');
+  var tSpin    = document.getElementById('tSpin');
+  var viewport = document.getElementById('viewport');
+
+  var cylAreaTxt = document.getElementById('cylAreaTxt');
+  var sphAreaTxt = document.getElementById('sphAreaTxt');
+  var cylVolTxt  = document.getElementById('cylVolTxt');
+  var sphVolTxt  = document.getElementById('sphVolTxt');
+
+  var prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(prefersReduced){ tSpin.checked = false; }
+
+  // ---------- text panels ----------
+  function updatePanels(r){
+    var r2 = r*r, r3 = r*r*r;
+    var coefA = 4*r2;            // coefficient of pi for area
+    var coefV = (4/3)*r3;        // coefficient of pi for volume
+    var A = 4*Math.PI*r2;
+    var V = (4/3)*Math.PI*r3;
+
+    rValue.textContent = fmtAuto(r) + ' u';
+
+    // Area steps
+    areaSteps.innerHTML =
+      '<div class="line"><span class="lhs">A =</span> 4 · π · r²</div>' +
+      '<div class="line"><span class="lhs">A =</span> 4 · π · <span class="hl">'+fmtAuto(r)+'</span>²</div>' +
+      '<div class="line"><span class="lhs">A =</span> 4 · π · <span class="hl">'+fmtAuto(r2)+'</span></div>' +
+      '<div class="line"><span class="lhs">A =</span> <span class="hl">'+fmtAuto(coefA)+'</span> · π</div>' +
+      '<div class="line result"><span class="lhs">A ≈</span> '+fmt(A,2)+' u²</div>';
+
+    // Volume steps
+    volSteps.innerHTML =
+      '<div class="line"><span class="lhs">V =</span> (4/3) · π · r³</div>' +
+      '<div class="line"><span class="lhs">V =</span> (4/3) · π · <span class="hl vol">'+fmtAuto(r)+'</span>³</div>' +
+      '<div class="line"><span class="lhs">V =</span> (4/3) · π · <span class="hl vol">'+fmtAuto(r3)+'</span></div>' +
+      '<div class="line"><span class="lhs">V =</span> <span class="hl vol">'+fmtAuto(coefV)+'</span> · π</div>' +
+      '<div class="line result"><span class="lhs">V ≈</span> '+fmt(V,2)+' u³</div>';
+
+    // comparison numbers
+    var cylA = 6*Math.PI*r2;
+    var cylV = 2*Math.PI*r3;
+    cylAreaTxt.textContent = fmt(cylA,2)+' u²';
+    sphAreaTxt.textContent = fmt(A,2)+' u²';
+    cylVolTxt.textContent  = fmt(cylV,2)+' u³';
+    sphVolTxt.textContent  = fmt(V,2)+' u³';
+  }
+
+  // ================= THREE.JS SCENE =================
+  var scene, camera, renderer, figure;
+  var hasWebGL = false;
+
+  try {
+    renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+    hasWebGL = true;
+  } catch(e){ hasWebGL = false; }
+
+  if(hasWebGL){
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
+    viewport.appendChild(renderer.domElement);
+
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(45, 1, 0.1, 2000);
+
+    var amb = new THREE.AmbientLight(0xffffff, 0.75);
+    scene.add(amb);
+    var dir = new THREE.DirectionalLight(0xffffff, 0.7);
+    dir.position.set(1, 1.4, 1.2);
+    scene.add(dir);
+    var dir2 = new THREE.DirectionalLight(0x9fd8ff, 0.35);
+    dir2.position.set(-1, -0.6, -0.8);
+    scene.add(dir2);
+
+    figure = new THREE.Group();
+    figure.rotation.x = 0.42;   // pleasant 3/4 tilt
+    scene.add(figure);
+
+    resize();
+    window.addEventListener('resize', resize);
+  }
+
+  // sprite text label (e.g. "r")
+  function makeLabel(text, color){
+    var c = document.createElement('canvas');
+    c.width = 128; c.height = 128;
+    var ctx = c.getContext('2d');
+    ctx.fillStyle = color;
+    ctx.font = 'bold 84px ui-monospace, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 64, 70);
+    var tex = new THREE.CanvasTexture(c);
+    tex.needsUpdate = true;
+    var mat = new THREE.SpriteMaterial({map:tex, transparent:true, depthTest:false});
+    return new THREE.Sprite(mat);
+  }
+
+  var cylParts = [];     // references so we can toggle cylinder
+  var circleRef = null;  // great circle
+
+  function clearFigure(){
+    if(!figure) return;
+    for(var i=figure.children.length-1;i>=0;i--){
+      var ch = figure.children[i];
+      figure.remove(ch);
+      if(ch.geometry) ch.geometry.dispose();
+      if(ch.material){
+        if(ch.material.map) ch.material.map.dispose();
+        ch.material.dispose();
+      }
+    }
+    cylParts = [];
+    circleRef = null;
+  }
+
+  function buildFigure(r){
+    if(!figure) return;
+    clearFigure();
+
+    var dash = r*0.13, gap = r*0.09;
+
+    // --- sphere (semi-transparent) ---
+    var sphGeo = new THREE.SphereGeometry(r, 48, 36);
+    var sphMat = new THREE.MeshStandardMaterial({
+      color:0x2db2a8, transparent:true, opacity:0.5, roughness:0.35, metalness:0.05,
+      side:THREE.DoubleSide
+    });
+    figure.add(new THREE.Mesh(sphGeo, sphMat));
+
+    // --- faint wireframe so curvature is readable ---
+    var wireMat = new THREE.MeshBasicMaterial({color:0x5FE0D4, wireframe:true, transparent:true, opacity:0.18});
+    var wireGeo = new THREE.SphereGeometry(r*1.001, 24, 16);
+    figure.add(new THREE.Mesh(wireGeo, wireMat));
+
+    // --- great circle (círculo máximo) in equatorial plane ---
+    var gcPts = [], seg = 128;
+    for(var i=0;i<=seg;i++){
+      var t=(i/seg)*Math.PI*2;
+      gcPts.push(new THREE.Vector3(Math.cos(t)*r, 0, Math.sin(t)*r));
+    }
+    var gcGeo = new THREE.BufferGeometry().setFromPoints(gcPts);
+    var gcMat = new THREE.LineBasicMaterial({color:0x5FE0D4, linewidth:2});
+    circleRef = new THREE.Line(gcGeo, gcMat);
+    circleRef.visible = tCircle.checked;
+    figure.add(circleRef);
+
+    // --- radius line (solid white) + label "r" ---
+    var radGeo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0,0,0), new THREE.Vector3(r,0,0)
+    ]);
+    var radMat = new THREE.LineBasicMaterial({color:0xffffff});
+    figure.add(new THREE.Line(radGeo, radMat));
+
+    // small center dot
+    var dotGeo = new THREE.SphereGeometry(r*0.025, 12, 12);
+    var dotMat = new THREE.MeshBasicMaterial({color:0xffffff});
+    figure.add(new THREE.Mesh(dotGeo, dotMat));
+
+    var rLabel = makeLabel('r', '#ffffff');
+    rLabel.position.set(r*0.5, r*0.12, 0);
+    rLabel.scale.set(r*0.32, r*0.32, 1);
+    figure.add(rLabel);
+
+    // ===== circumscribing cylinder: radius r, height 2r, dashed =====
+    // top and bottom circles
+    function circleAtY(y){
+      var pts=[], s=96;
+      for(var i=0;i<=s;i++){
+        var t=(i/s)*Math.PI*2;
+        pts.push(new THREE.Vector3(Math.cos(t)*r, y, Math.sin(t)*r));
+      }
+      var g=new THREE.BufferGeometry().setFromPoints(pts);
+      var m=new THREE.LineDashedMaterial({color:0xE0922F, dashSize:dash, gapSize:gap});
+      var l=new THREE.Line(g,m); l.computeLineDistances();
+      return l;
+    }
+    var top = circleAtY(r), bot = circleAtY(-r);
+    cylParts.push(top, bot);
+    figure.add(top); figure.add(bot);
+
+    // vertical dashed lines
+    var verts = 8;
+    for(var v=0; v<verts; v++){
+      var ang = (v/verts)*Math.PI*2;
+      var px = Math.cos(ang)*r, pz = Math.sin(ang)*r;
+      var g = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(px,-r,pz), new THREE.Vector3(px,r,pz)
+      ]);
+      var m = new THREE.LineDashedMaterial({color:0xE0922F, dashSize:dash, gapSize:gap});
+      var l = new THREE.Line(g,m); l.computeLineDistances();
+      cylParts.push(l); figure.add(l);
+    }
+
+    // faint cylinder surface
+    var cylSurfGeo = new THREE.CylinderGeometry(r, r, 2*r, 48, 1, true);
+    var cylSurfMat = new THREE.MeshBasicMaterial({color:0xE0922F, transparent:true, opacity:0.05, side:THREE.DoubleSide});
+    var cylSurf = new THREE.Mesh(cylSurfGeo, cylSurfMat);
+    cylParts.push(cylSurf); figure.add(cylSurf);
+
+    applyCylVisibility();
+
+    // keep apparent size constant: distance scales with r
+    camera.position.set(0, r*0.95, r*3.5);
+    camera.lookAt(0,0,0);
+  }
+
+  function applyCylVisibility(){
+    var on = tCyl.checked;
+    for(var i=0;i<cylParts.length;i++){ cylParts[i].visible = on; }
+  }
+
+  function resize(){
+    if(!renderer) return;
+    var w = viewport.clientWidth, h = viewport.clientHeight;
+    if(w===0||h===0) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w/h;
+    camera.updateProjectionMatrix();
+  }
+
+  // ---------- drag to rotate ----------
+  var dragging=false, lastX=0, lastY=0;
+  function onDown(e){
+    dragging=true; viewport.classList.add('grabbing');
+    var p = pointer(e); lastX=p.x; lastY=p.y;
+  }
+  function onMove(e){
+    if(!dragging || !figure) return;
+    var p = pointer(e);
+    var dx = p.x-lastX, dy = p.y-lastY;
+    lastX=p.x; lastY=p.y;
+    figure.rotation.y += dx*0.01;
+    figure.rotation.x += dy*0.01;
+    figure.rotation.x = Math.max(-1.4, Math.min(1.4, figure.rotation.x));
+    e.preventDefault();
+  }
+  function onUp(){ dragging=false; viewport.classList.remove('grabbing'); }
+  function pointer(e){
+    if(e.touches && e.touches[0]) return {x:e.touches[0].clientX, y:e.touches[0].clientY};
+    return {x:e.clientX, y:e.clientY};
+  }
+  viewport.addEventListener('mousedown', onDown);
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+  viewport.addEventListener('touchstart', onDown, {passive:false});
+  viewport.addEventListener('touchmove', onMove, {passive:false});
+  viewport.addEventListener('touchend', onUp);
+
+  // ---------- animation ----------
+  function animate(){
+    requestAnimationFrame(animate);
+    if(figure && tSpin.checked && !dragging){
+      figure.rotation.y += 0.005;
+    }
+    if(renderer) renderer.render(scene, camera);
+  }
+  if(hasWebGL) animate();
+
+  // ---------- events ----------
+  function refresh(){
+    var r = parseFloat(slider.value);
+    updatePanels(r);
+    buildFigure(r);
+  }
+  slider.addEventListener('input', refresh);
+  tCyl.addEventListener('change', applyCylVisibility);
+  tCircle.addEventListener('change', function(){ if(circleRef) circleRef.visible = tCircle.checked; });
+
+  // ---------- init ----------
+  updatePanels(parseFloat(slider.value));
+  if(hasWebGL){ buildFigure(parseFloat(slider.value)); }
+  else { viewport.innerHTML = '<div style="color:#fff;padding:20px;font-family:monospace">Tu navegador no admite 3D (WebGL). El resto del recurso funciona igual.</div>'; }
+})();
+</script>
+</body>
+</html>

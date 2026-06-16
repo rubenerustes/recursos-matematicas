@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Escalas en planos – 3.º ESO</title>
+  <style>
+    /* ── Tokens ────────────────────────────────────────────── */
+    :root {
+      --bg:        #F7F6F2;
+      --panel:     #FFFFFF;
+      --grid:      #DDE3EC;
+      --accent:    #2B5BDD;
+      --accent2:   #E8601C;
+      --text:      #1A1D26;
+      --muted:     #6B7280;
+      --handle-l:  #2B5BDD;
+      --handle-w:  #E8601C;
+      --rect-fill: rgba(43,91,221,0.10);
+      --rect-str:  #2B5BDD;
+      --shadow:    0 2px 12px rgba(0,0,0,.08);
+      --radius:    10px;
+      --font-body: 'Segoe UI', system-ui, sans-serif;
+      --font-mono: 'Courier New', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      font-family: var(--font-body);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px 16px 40px;
+    }
+
+    /* ── Header ────────────────────────────────────────────── */
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    header .eyebrow {
+      font-size: 11px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    header h1 {
+      font-size: clamp(22px, 4vw, 32px);
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1.15;
+    }
+    header p {
+      margin-top: 8px;
+      font-size: 14px;
+      color: var(--muted);
+      max-width: 560px;
+      margin-inline: auto;
+    }
+
+    /* ── Layout ────────────────────────────────────────────── */
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 20px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    @media (max-width: 760px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    /* ── Canvas card ────────────────────────────────────────── */
+    .canvas-card {
+      background: var(--panel);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+      position: relative;
+    }
+    .canvas-card h2 {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    #plano {
+      width: 100%;
+      cursor: default;
+      touch-action: none;
+      border-radius: 6px;
+      display: block;
+    }
+
+    /* ── Sidebar ────────────────────────────────────────────── */
+    .sidebar { display: flex; flex-direction: column; gap: 16px; }
+
+    .card {
+      background: var(--panel);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px 20px;
+    }
+    .card h2 {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    /* Scale selector */
+    .scale-selector {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .scale-btn {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 2px solid var(--grid);
+      background: transparent;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .scale-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .scale-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    /* Data grid */
+    .data-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .datum {
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .datum.full { grid-column: 1 / -1; }
+    .datum .label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .datum .value {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+    .datum .value.blue  { color: var(--accent); }
+    .datum .value.orange{ color: var(--accent2); }
+    .datum .unit {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+      margin-left: 2px;
+    }
+
+    /* Formula box */
+    .formula-box {
+      background: #F0F4FF;
+      border-left: 4px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      padding: 12px 16px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--text);
+    }
+    .formula-box .title {
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+    .formula-box .frac {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      vertical-align: middle;
+      margin: 0 2px;
+    }
+    .formula-box .num, .formula-box .den {
+      display: block;
+      text-align: center;
+      line-height: 1.2;
+    }
+    .formula-box .bar {
+      width: 100%;
+      height: 1px;
+      background: var(--text);
+      margin: 1px 0;
+    }
+    .formula-instance {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #C7D5FA;
+      color: var(--accent);
+      font-size: 12px;
+    }
+
+    /* Legend dots */
+    .legend { display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap; }
+    .leg-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot.blue   { background: var(--handle-l); }
+    .dot.orange { background: var(--handle-w); }
+
+    /* Tip */
+    .tip {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+    .tip strong { color: var(--text); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Matemáticas · 3.º ESO · Unidad 9</div>
+  <h1>Escalas en planos y mapas</h1>
+  <p>Arrastra los puntos de colores para cambiar las dimensiones del edificio y observa cómo varía la medida real.</p>
+</header>
+
+<div class="layout">
+
+  <!-- ── Canvas ── -->
+  <div class="canvas-card">
+    <h2>Plano del edificio (vista desde arriba)</h2>
+    <canvas id="plano" width="600" height="420"></canvas>
+    <div class="legend">
+      <div class="leg-item"><div class="dot blue"></div>Arrastra → cambia la <strong>longitud</strong></div>
+      <div class="leg-item"><div class="dot orange"></div>Arrastra ↑ cambia la <strong>anchura</strong></div>
+    </div>
+    <p class="tip">💡 <strong>Pista:</strong> La escala te dice cuántas veces más pequeño es el dibujo que la realidad. Con escala 1:200, ¡1 cm en el plano equivale a 2 m reales!</p>
+  </div>
+
+  <!-- ── Sidebar ── -->
+  <div class="sidebar">
+
+    <!-- Escala -->
+    <div class="card">
+      <h2>Elige la escala</h2>
+      <div class="scale-selector" id="scaleSelector"></div>
+    </div>
+
+    <!-- Fórmula -->
+    <div class="card">
+      <div class="formula-box">
+        <div class="title">Fórmula de la escala</div>
+        Escala = <span class="frac"><span class="num">distancia en el plano</span><span class="bar"></span><span class="den">distancia real</span></span>
+        <div class="formula-instance" id="formulaInstance"></div>
+      </div>
+    </div>
+
+    <!-- Datos -->
+    <div class="card">
+      <h2>Medidas calculadas</h2>
+      <div class="data-grid">
+        <div class="datum full">
+          <div class="label">Escala activa</div>
+          <div class="value blue" id="escalaActiva">1:200</div>
+        </div>
+        <div class="datum">
+          <div class="label">Longitud en plano</div>
+          <div class="value blue" id="longPlano">—</div>
+          <div class="unit">cm</div>
+        </div>
+        <div class="datum">
+          <div class="label">Anchura en plano</div>
+          <div class="value orange" id="anchPlano">—</div>
+          <div class="unit">cm</div>
+        </div>
+        <div class="datum">
+          <div class="label">Longitud real</div>
+          <div class="value blue" id="longReal">—</div>
+          <div class="unit">m</div>
+        </div>
+        <div class="datum">
+          <div class="label">Anchura real</div>
+          <div class="value orange" id="anchReal">—</div>
+          <div class="unit">m</div>
+        </div>
+        <div class="datum">
+          <div class="label">Área en plano</div>
+          <div class="value" id="areaPlano">—</div>
+          <div class="unit">cm²</div>
+        </div>
+        <div class="datum">
+          <div class="label">Área real</div>
+          <div class="value" id="areaReal">—</div>
+          <div class="unit">m²</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /sidebar -->
+</div><!-- /layout -->
+
+<script>
+// ── Escalas disponibles ──────────────────────────────────────
+// Formato: { label, num, den }   escala = num/den
+// "3:100" significa 3 unidades plano = 100 unidades real
+// Para calcular distancia real en metros:
+//   d_real(m) = d_plano(cm) * den/num / 100
+const SCALES = [
+  { label: "3:100",  num: 3,  den: 100  },
+  { label: "1:200",  num: 1,  den: 200  },
+  { label: "1:500",  num: 1,  den: 500  },
+  { label: "5:1000", num: 5,  den: 1000 },
+  { label: "1:2000", num: 1,  den: 2000 },
+];
+
+// ── Verificación automática ──────────────────────────────────
+// Escala 1:200, longitud plano = 5 cm → real = 5 * 200/1 / 100 = 10 m ✓
+(function verify() {
+  const s = SCALES.find(s => s.label === "1:200");
+  const result = 5 * s.den / s.num / 100;
+  if (Math.abs(result - 10) > 1e-9) {
+    console.error("ERROR: fórmula incorrecta, resultado:", result);
+  } else {
+    console.log("✓ Verificación OK: 1:200, 5 cm → " + result + " m");
+  }
+})();
+
+// ── Estado ───────────────────────────────────────────────────
+let scaleIdx = 1; // 1:200 por defecto
+
+// Dimensiones del rectángulo en PÍXELES del canvas
+// El canvas tiene 600×420 px; zona de dibujo: margen 60px
+const CANVAS_W = 600, CANVAS_H = 420;
+const MARGIN   = 60;   // margen izquierdo/arriba para ejes
+const MAX_PX_W = CANVAS_W - MARGIN - 40;  // máx ancho px
+const MAX_PX_H = CANVAS_H - MARGIN - 40;  // máx alto px
+
+// Valores iniciales en px
+let rectW = 200;   // longitud (eje X)
+let rectH = 130;   // anchura  (eje Y)
+
+const MIN_PX = 30;
+
+// Conversión px → cm en plano (1 cm plano = 20 px a escala 1 neutral)
+// Elegimos que 1 cm de plano = PX_PER_CM px en pantalla
+const PX_PER_CM = 20;
+
+// ── Canvas ───────────────────────────────────────────────────
+const canvas = document.getElementById("plano");
+const ctx = canvas.getContext("2d");
+
+// Escalar canvas para pantallas HiDPI
+function setupDPI() {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  // Solo la primera vez
+  if (canvas.dataset.dpr) return;
+  canvas.dataset.dpr = dpr;
+  canvas.width  = CANVAS_W * dpr;
+  canvas.height = CANVAS_H * dpr;
+  canvas.style.width  = CANVAS_W + "px";
+  canvas.style.height = CANVAS_H + "px";
+  ctx.scale(dpr, dpr);
+}
+setupDPI();
+
+// Origen del rectángulo en el canvas (esquina sup-izq)
+const OX = MARGIN + 10;
+const OY = MARGIN;
+
+// Handles
+function handleL() { return { x: OX + rectW, y: OY + rectH / 2 }; }
+function handleW() { return { x: OX + rectW / 2, y: OY + rectH }; }
+const HANDLE_R = 10;
+
+function inHandle(hx, hy, mx, my) {
+  return Math.hypot(mx - hx, my - hy) < HANDLE_R + 4;
+}
+
+// ── Fondo cuadriculado ───────────────────────────────────────
+function drawGrid() {
+  ctx.save();
+  ctx.strokeStyle = "#DDE3EC";
+  ctx.lineWidth = 0.5;
+  const step = PX_PER_CM;
+  for (let x = OX; x <= CANVAS_W - 20; x += step) {
+    ctx.beginPath(); ctx.moveTo(x, OY); ctx.lineTo(x, CANVAS_H - 20); ctx.stroke();
+  }
+  for (let y = OY; y <= CANVAS_H - 20; y += step) {
+    ctx.beginPath(); ctx.moveTo(OX, y); ctx.lineTo(CANVAS_W - 20, y); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ── Regla ────────────────────────────────────────────────────
+function drawRuler() {
+  ctx.save();
+  ctx.font = "10px 'Segoe UI', sans-serif";
+  ctx.fillStyle = "#9CA3AF";
+  ctx.strokeStyle = "#9CA3AF";
+  ctx.lineWidth = 1;
+  // Eje X (ticks de 1 cm)
+  for (let i = 0; i * PX_PER_CM <= CANVAS_W - OX - 20; i++) {
+    const px = OX + i * PX_PER_CM;
+    ctx.beginPath();
+    ctx.moveTo(px, OY - 6);
+    ctx.lineTo(px, OY - 1);
+    ctx.stroke();
+    if (i % 2 === 0) ctx.fillText(i + " cm", px - 6, OY - 10);
+  }
+  // Eje Y (ticks de 1 cm)
+  for (let i = 0; i * PX_PER_CM <= CANVAS_H - OY - 20; i++) {
+    const py = OY + i * PX_PER_CM;
+    ctx.beginPath();
+    ctx.moveTo(OX - 6, py);
+    ctx.lineTo(OX - 1, py);
+    ctx.stroke();
+    if (i % 2 === 0) {
+      ctx.save();
+      ctx.translate(OX - 14, py + 4);
+      ctx.fillText(i, 0, 0);
+      ctx.restore();
+    }
+  }
+  ctx.restore();
+}
+
+// ── Edificio ─────────────────────────────────────────────────
+function drawBuilding() {
+  // Sombra suave
+  ctx.save();
+  ctx.shadowColor = "rgba(43,91,221,0.18)";
+  ctx.shadowBlur = 10;
+  ctx.shadowOffsetX = 3;
+  ctx.shadowOffsetY = 3;
+  ctx.fillStyle = "rgba(43,91,221,0.10)";
+  ctx.strokeStyle = "#2B5BDD";
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.rect(OX, OY, rectW, rectH);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+
+  // Líneas interiores simulando ventanas/habitaciones
+  ctx.save();
+  ctx.strokeStyle = "rgba(43,91,221,0.20)";
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  // Línea vertical central
+  if (rectW > 60) {
+    ctx.beginPath();
+    ctx.moveTo(OX + rectW / 2, OY + 6);
+    ctx.lineTo(OX + rectW / 2, OY + rectH - 6);
+    ctx.stroke();
+  }
+  // Línea horizontal central
+  if (rectH > 60) {
+    ctx.beginPath();
+    ctx.moveTo(OX + 6, OY + rectH / 2);
+    ctx.lineTo(OX + rectW - 6, OY + rectH / 2);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+// ── Cotas ─────────────────────────────────────────────────────
+function drawDimension(x1, y1, x2, y2, text, color, outside) {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.fillStyle   = color;
+  ctx.lineWidth   = 1.4;
+  ctx.font        = "bold 11px 'Segoe UI', sans-serif";
+
+  // Flecha doble horizontal
+  const midX = (x1 + x2) / 2;
+  const midY = (y1 + y2) / 2;
+
+  // Línea principal
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  // Puntas de flecha
+  const A = 6;
+  // izq
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  if (y1 === y2) { // horizontal
+    ctx.lineTo(x1 + A, y1 - A/2); ctx.lineTo(x1 + A, y1 + A/2);
+  } else {          // vertical
+    ctx.lineTo(x1 - A/2, y1 + A); ctx.lineTo(x1 + A/2, y1 + A);
+  }
+  ctx.fill();
+  // der
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  if (y1 === y2) {
+    ctx.lineTo(x2 - A, y2 - A/2); ctx.lineTo(x2 - A, y2 + A/2);
+  } else {
+    ctx.lineTo(x2 - A/2, y2 - A); ctx.lineTo(x2 + A/2, y2 - A);
+  }
+  ctx.fill();
+
+  // Texto con fondo blanco
+  const tw = ctx.measureText(text).width;
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(midX - tw/2 - 3, midY - 9, tw + 6, 14);
+  ctx.fillStyle = color;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, midX, midY);
+  ctx.restore();
+}
+
+function drawCotas() {
+  const lCm = (rectW / PX_PER_CM).toFixed(2);
+  const aCm = (rectH / PX_PER_CM).toFixed(2);
+  const s   = SCALES[scaleIdx];
+  const lM  = +(lCm * s.den / s.num / 100).toFixed(2);
+  const aM  = +(aCm * s.den / s.num / 100).toFixed(2);
+
+  const OFF = 18;
+  // Cota longitud (bajo el rectángulo)
+  drawDimension(
+    OX, OY + rectH + OFF,
+    OX + rectW, OY + rectH + OFF,
+    lCm + " cm  →  " + lM + " m",
+    "#2B5BDD"
+  );
+  // Cota anchura (a la derecha del rectángulo)
+  drawDimension(
+    OX + rectW + OFF, OY,
+    OX + rectW + OFF, OY + rectH,
+    aCm + " cm  →  " + aM + " m",
+    "#E8601C"
+  );
+}
+
+// ── Handles ───────────────────────────────────────────────────
+function drawHandle(x, y, color, label) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x, y, HANDLE_R, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.font = "bold 10px 'Segoe UI', sans-serif";
+  ctx.fillStyle = "#fff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, x, y);
+  ctx.restore();
+}
+
+// ── Etiqueta "EDIFICIO" ───────────────────────────────────────
+function drawLabel() {
+  if (rectW < 70 || rectH < 30) return;
+  ctx.save();
+  ctx.font = "bold 13px 'Segoe UI', sans-serif";
+  ctx.fillStyle = "rgba(43,91,221,0.55)";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("EDIFICIO", OX + rectW/2, OY + rectH/2);
+  ctx.restore();
+}
+
+// ── Render principal ──────────────────────────────────────────
+function render() {
+  ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+  drawGrid();
+  drawRuler();
+  drawBuilding();
+  drawLabel();
+  drawCotas();
+  drawHandle(handleL().x, handleL().y, "#2B5BDD", "↔");
+  drawHandle(handleW().x, handleW().y, "#E8601C", "↕");
+  updatePanel();
+}
+
+// ── Panel de datos ────────────────────────────────────────────
+function fmt(n) {
+  return parseFloat(n.toFixed(2)).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function updatePanel() {
+  const s    = SCALES[scaleIdx];
+  const lCm  = +(rectW / PX_PER_CM).toFixed(4);
+  const aCm  = +(rectH / PX_PER_CM).toFixed(4);
+  // Fórmula: d_real(m) = d_plano(cm) * den / num / 100
+  const lM   = +(lCm * s.den / s.num / 100);
+  const aM   = +(aCm * s.den / s.num / 100);
+  const apCm2 = +(lCm * aCm);
+  const arM2  = +(lM  * aM);
+
+  document.getElementById("escalaActiva").textContent = s.label;
+  document.getElementById("longPlano").textContent   = fmt(lCm);
+  document.getElementById("anchPlano").textContent   = fmt(aCm);
+  document.getElementById("longReal").textContent    = fmt(lM);
+  document.getElementById("anchReal").textContent    = fmt(aM);
+  document.getElementById("areaPlano").textContent   = fmt(apCm2);
+  document.getElementById("areaReal").textContent    = fmt(arM2);
+
+  // Instancia de la fórmula
+  document.getElementById("formulaInstance").innerHTML =
+    `Escala = ${fmt(lCm)} cm / ${fmt(lM)} m = <strong>1 cm → ${fmt(s.den / s.num / 100)} m</strong>`;
+}
+
+// ── Selector de escala ────────────────────────────────────────
+const selector = document.getElementById("scaleSelector");
+SCALES.forEach((s, i) => {
+  const btn = document.createElement("button");
+  btn.className = "scale-btn" + (i === scaleIdx ? " active" : "");
+  btn.textContent = s.label;
+  btn.addEventListener("click", () => {
+    scaleIdx = i;
+    document.querySelectorAll(".scale-btn").forEach((b, j) => {
+      b.classList.toggle("active", j === i);
+    });
+    render();
+  });
+  selector.appendChild(btn);
+});
+
+// ── Drag ─────────────────────────────────────────────────────
+let dragging = null; // "L" | "W" | null
+let lastPos  = null;
+
+function getPos(e) {
+  const r = canvas.getBoundingClientRect();
+  const scaleX = CANVAS_W / r.width;
+  const scaleY = CANVAS_H / r.height;
+  if (e.touches) {
+    return {
+      x: (e.touches[0].clientX - r.left) * scaleX,
+      y: (e.touches[0].clientY - r.top)  * scaleY
+    };
+  }
+  return {
+    x: (e.clientX - r.left) * scaleX,
+    y: (e.clientY - r.top)  * scaleY
+  };
+}
+
+function onDown(e) {
+  const p = getPos(e);
+  const hl = handleL(), hw = handleW();
+  if (inHandle(hl.x, hl.y, p.x, p.y)) { dragging = "L"; lastPos = p; e.preventDefault(); }
+  else if (inHandle(hw.x, hw.y, p.x, p.y)) { dragging = "W"; lastPos = p; e.preventDefault(); }
+}
+
+function onMove(e) {
+  if (!dragging) {
+    // Cambiar cursor
+    const p = getPos(e);
+    const hl = handleL(), hw = handleW();
+    if (inHandle(hl.x, hl.y, p.x, p.y) || inHandle(hw.x, hw.y, p.x, p.y)) {
+      canvas.style.cursor = "grab";
+    } else {
+      canvas.style.cursor = "default";
+    }
+    return;
+  }
+  e.preventDefault();
+  const p = getPos(e);
+  if (dragging === "L") {
+    rectW = Math.min(MAX_PX_W, Math.max(MIN_PX, p.x - OX));
+  } else {
+    rectH = Math.min(MAX_PX_H, Math.max(MIN_PX, p.y - OY));
+  }
+  lastPos = p;
+  render();
+}
+
+function onUp() { dragging = null; canvas.style.cursor = "default"; }
+
+canvas.addEventListener("mousedown",  onDown);
+canvas.addEventListener("mousemove",  onMove);
+canvas.addEventListener("mouseup",    onUp);
+canvas.addEventListener("mouseleave", onUp);
+canvas.addEventListener("touchstart", onDown, { passive: false });
+canvas.addEventListener("touchmove",  onMove, { passive: false });
+canvas.addEventListener("touchend",   onUp);
+
+// ── Init ──────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>

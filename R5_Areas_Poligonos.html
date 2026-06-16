@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Áreas de Polígonos · 3.º ESO</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --azul:       #1B4FD8;
+    --azul-suave: #E8EEFB;
+    --verde:      #0F7B55;
+    --verde-suave:#E4F4EE;
+    --naranja:    #D95F02;
+    --naranja-suave:#FDE8D8;
+    --gris-bg:    #F5F6FA;
+    --gris-borde: #D8DCE8;
+    --gris-texto: #5A6072;
+    --negro:      #1A1D2E;
+    --blanco:     #FFFFFF;
+    --sombra:     0 2px 12px rgba(27,79,216,.10);
+    --radio:      12px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    background: var(--gris-bg);
+    color: var(--negro);
+    min-height: 100vh;
+    padding: 0 0 40px;
+  }
+
+  /* ── CABECERA ── */
+  header {
+    background: var(--azul);
+    color: var(--blanco);
+    padding: 20px 32px 18px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  header .icon { font-size: 2rem; }
+  header h1 { font-size: 1.25rem; font-weight: 700; line-height: 1.2; }
+  header p  { font-size: .82rem; opacity: .78; margin-top: 2px; }
+
+  /* ── PESTAÑAS ── */
+  .tabs-bar {
+    background: var(--blanco);
+    border-bottom: 2px solid var(--gris-borde);
+    display: flex;
+    overflow-x: auto;
+    padding: 0 24px;
+    gap: 2px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tab-btn {
+    flex-shrink: 0;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: .875rem;
+    font-weight: 600;
+    color: var(--gris-texto);
+    padding: 14px 20px 12px;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: color .18s, border-color .18s;
+    white-space: nowrap;
+  }
+  .tab-btn:hover { color: var(--azul); }
+  .tab-btn.active { color: var(--azul); border-bottom-color: var(--azul); }
+
+  /* ── CONTENEDOR PRINCIPAL ── */
+  .main-wrap {
+    max-width: 1000px;
+    margin: 28px auto 0;
+    padding: 0 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 720px) {
+    .main-wrap { grid-template-columns: 1fr; }
+  }
+
+  /* ── TARJETA ── */
+  .card {
+    background: var(--blanco);
+    border-radius: var(--radio);
+    box-shadow: var(--sombra);
+    padding: 24px;
+  }
+  .card h2 {
+    font-size: .78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--gris-texto);
+    margin-bottom: 16px;
+  }
+
+  /* ── SVG CANVAS ── */
+  .svg-wrap {
+    background: var(--gris-bg);
+    border-radius: 8px;
+    border: 1.5px solid var(--gris-borde);
+    overflow: hidden;
+    aspect-ratio: 4/3;
+  }
+  .svg-wrap svg { width: 100%; height: 100%; display: block; }
+
+  /* ── CONTROLES ── */
+  .controls { display: flex; flex-direction: column; gap: 14px; }
+
+  .slider-group label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: .875rem;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  .slider-group label .val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .82rem;
+    background: var(--azul-suave);
+    color: var(--azul);
+    padding: 1px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  input[type=range] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--gris-borde);
+    outline: none;
+    cursor: pointer;
+    accent-color: var(--azul);
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--azul);
+    border: 3px solid var(--blanco);
+    box-shadow: 0 0 0 2px var(--azul);
+    cursor: pointer;
+  }
+
+  /* toggle base media */
+  .toggle-row {
+    display: flex; align-items: center; gap: 10px;
+    font-size: .875rem; font-weight: 500;
+  }
+  .toggle {
+    position: relative; width: 38px; height: 22px; flex-shrink: 0;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; inset: 0;
+    background: var(--gris-borde);
+    border-radius: 22px; cursor: pointer;
+    transition: background .2s;
+  }
+  .toggle-slider::before {
+    content: '';
+    position: absolute; left: 3px; top: 3px;
+    width: 16px; height: 16px;
+    background: var(--blanco);
+    border-radius: 50%;
+    transition: transform .2s;
+  }
+  .toggle input:checked + .toggle-slider { background: var(--azul); }
+  .toggle input:checked + .toggle-slider::before { transform: translateX(16px); }
+
+  /* ── FÓRMULA ── */
+  .formula-box {
+    background: var(--azul-suave);
+    border-left: 4px solid var(--azul);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .93rem;
+    line-height: 1.7;
+    color: var(--negro);
+  }
+  .formula-box .paso { color: var(--gris-texto); font-size: .82rem; }
+  .formula-box .resultado {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--azul);
+  }
+
+  /* ── AREA BADGE ── */
+  .area-badge {
+    background: var(--azul);
+    color: var(--blanco);
+    border-radius: 8px;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .area-badge .label { font-size: .8rem; opacity: .8; }
+  .area-badge .number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .area-badge .unit { font-size: .75rem; opacity: .75; }
+
+  /* ── EXPLICACIÓN ── */
+  .explicacion {
+    background: var(--verde-suave);
+    border-left: 4px solid var(--verde);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    font-size: .85rem;
+    line-height: 1.6;
+    color: var(--negro);
+  }
+  .explicacion strong { color: var(--verde); }
+
+  /* ── PANEL LAYOUT ── */
+  .panel { display: none; }
+  .panel.active { display: contents; }
+
+  .col-izq { display: flex; flex-direction: column; gap: 16px; }
+  .col-der { display: flex; flex-direction: column; gap: 16px; }
+
+  /* separador */
+  hr.sep { border: none; border-top: 1px solid var(--gris-borde); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="icon">📐</div>
+  <div>
+    <h1>Áreas de Polígonos</h1>
+    <p>Matemáticas · 3.º ESO · Geometría en el plano · Decreto 65/2022 – Comunidad de Madrid</p>
+  </div>
+</header>
+
+<nav class="tabs-bar" role="tablist">
+  <button class="tab-btn active" data-tab="triangulo"     role="tab">▲ Triángulo</button>
+  <button class="tab-btn"        data-tab="rectangulo"    role="tab">▬ Rectángulo</button>
+  <button class="tab-btn"        data-tab="paralelogramo" role="tab">▱ Paralelogramo</button>
+  <button class="tab-btn"        data-tab="rombo"         role="tab">◆ Rombo</button>
+  <button class="tab-btn"        data-tab="trapecio"      role="tab">⌂ Trapecio</button>
+</nav>
+
+<!-- ══════════════════════════════════════════
+     TRIÁNGULO
+══════════════════════════════════════════ -->
+<div class="main-wrap" id="panel-triangulo">
+  <div class="col-izq">
+    <div class="card">
+      <h2>Figura y demostración</h2>
+      <div class="svg-wrap"><svg id="svg-tri" viewBox="0 0 400 300"></svg></div>
+    </div>
+  </div>
+  <div class="col-der">
+    <div class="card">
+      <h2>Controles</h2>
+      <div class="controls">
+        <div class="slider-group">
+          <label>Base (b) <span class="val" id="tri-b-val">10 cm</span></label>
+          <input type="range" id="tri-b" min="3" max="18" value="10" step="0.5">
+        </div>
+        <div class="slider-group">
+          <label>Altura (h) <span class="val" id="tri-h-val">6 cm</span></label>
+          <input type="range" id="tri-h" min="2" max="14" value="6" step="0.5">
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Fórmula paso a paso</h2>
+      <div class="formula-box" id="tri-formula">
+        <div class="paso">Área del rectángulo auxiliar = b × h</div>
+        <div>A<sub>rect</sub> = <span id="tri-fb"></span> × <span id="tri-fh"></span> = <span id="tri-frect"></span> cm²</div>
+        <hr class="sep" style="margin:8px 0">
+        <div>A = (b × h) / 2</div>
+        <div>A = (<span id="tri-fb2"></span> × <span id="tri-fh2"></span>) / 2</div>
+        <div class="resultado">A = <span id="tri-res"></span> cm²</div>
+      </div>
+    </div>
+    <div class="area-badge">
+      <div>
+        <div class="label">Área del triángulo</div>
+        <div class="number" id="tri-area">30</div>
+        <div class="unit">cm²</div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>¿Por qué funciona?</h2>
+      <div class="explicacion">
+        <strong>El triángulo ocupa exactamente la mitad del rectángulo</strong> de la misma base y altura.<br>
+        Las dos zonas sombreadas fuera del triángulo son iguales en área a las dos mitades interiores,
+        así que el triángulo siempre ocupa la mitad del rectángulo.
+        Por eso dividimos entre 2: <strong>A = (b × h) / 2</strong>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     RECTÁNGULO
+══════════════════════════════════════════ -->
+<div class="main-wrap" id="panel-rectangulo" style="display:none">
+  <div class="col-izq">
+    <div class="card">
+      <h2>Figura y demostración</h2>
+      <div class="svg-wrap"><svg id="svg-rect" viewBox="0 0 400 300"></svg></div>
+    </div>
+  </div>
+  <div class="col-der">
+    <div class="card">
+      <h2>Controles</h2>
+      <div class="controls">
+        <div class="slider-group">
+          <label>Base (b) <span class="val" id="rect-b-val">8 cm</span></label>
+          <input type="range" id="rect-b" min="2" max="15" value="8" step="1">
+        </div>
+        <div class="slider-group">
+          <label>Altura (h) <span class="val" id="rect-h-val">5 cm</span></label>
+          <input type="range" id="rect-h" min="2" max="10" value="5" step="1">
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Fórmula paso a paso</h2>
+      <div class="formula-box" id="rect-formula">
+        <div class="paso">Cuadrados en la base: <span id="rect-fb"></span></div>
+        <div class="paso">Filas de cuadrados: <span id="rect-fh"></span></div>
+        <hr class="sep" style="margin:8px 0">
+        <div>A = b × h</div>
+        <div>A = <span id="rect-fb2"></span> × <span id="rect-fh2"></span></div>
+        <div class="resultado">A = <span id="rect-res"></span> cm²</div>
+      </div>
+    </div>
+    <div class="area-badge">
+      <div>
+        <div class="label">Área del rectángulo</div>
+        <div class="number" id="rect-area">40</div>
+        <div class="unit">cm²</div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>¿Por qué funciona?</h2>
+      <div class="explicacion">
+        <strong>El área es el número de cuadrados de lado 1 cm que caben dentro.</strong><br>
+        En la primera fila caben <strong>b</strong> cuadrados. Como hay <strong>h</strong> filas iguales,
+        el total es <strong>b × h</strong> cuadrados. Así de sencillo: <strong>A = b × h</strong>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PARALELOGRAMO
+══════════════════════════════════════════ -->
+<div class="main-wrap" id="panel-paralelogramo" style="display:none">
+  <div class="col-izq">
+    <div class="card">
+      <h2>Figura y demostración</h2>
+      <div class="svg-wrap"><svg id="svg-par" viewBox="0 0 400 300"></svg></div>
+    </div>
+  </div>
+  <div class="col-der">
+    <div class="card">
+      <h2>Controles</h2>
+      <div class="controls">
+        <div class="slider-group">
+          <label>Base (b) <span class="val" id="par-b-val">10 cm</span></label>
+          <input type="range" id="par-b" min="4" max="16" value="10" step="0.5">
+        </div>
+        <div class="slider-group">
+          <label>Altura (h) <span class="val" id="par-h-val">6 cm</span></label>
+          <input type="range" id="par-h" min="2" max="12" value="6" step="0.5">
+        </div>
+        <div class="slider-group">
+          <label>Inclinación <span class="val" id="par-s-val">3 cm</span></label>
+          <input type="range" id="par-s" min="1" max="5" value="3" step="0.5">
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Fórmula paso a paso</h2>
+      <div class="formula-box">
+        <div class="paso">Recortamos el triángulo derecho y lo pegamos a la izquierda</div>
+        <div class="paso">⟹ Obtenemos un rectángulo de b × h</div>
+        <hr class="sep" style="margin:8px 0">
+        <div>A = b × h</div>
+        <div>A = <span id="par-fb"></span> × <span id="par-fh"></span></div>
+        <div class="resultado">A = <span id="par-res"></span> cm²</div>
+      </div>
+    </div>
+    <div class="area-badge">
+      <div>
+        <div class="label">Área del paralelogramo</div>
+        <div class="number" id="par-area">60</div>
+        <div class="unit">cm²</div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>¿Por qué funciona?</h2>
+      <div class="explicacion">
+        <strong>Recortamos y pegamos: transformamos el paralelogramo en un rectángulo.</strong><br>
+        El triángulo verde del lado derecho (mostrado con relleno) se puede desprender y colocar
+        en el lado izquierdo. El resultado es un rectángulo con la misma base y la misma altura.
+        Por tanto, tienen el mismo área: <strong>A = b × h</strong>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     ROMBO
+══════════════════════════════════════════ -->
+<div class="main-wrap" id="panel-rombo" style="display:none">
+  <div class="col-izq">
+    <div class="card">
+      <h2>Figura y demostración</h2>
+      <div class="svg-wrap"><svg id="svg-rombo" viewBox="0 0 400 300"></svg></div>
+    </div>
+  </div>
+  <div class="col-der">
+    <div class="card">
+      <h2>Controles</h2>
+      <div class="controls">
+        <div class="slider-group">
+          <label>Diagonal mayor (d₁) <span class="val" id="rombo-d1-val">12 cm</span></label>
+          <input type="range" id="rombo-d1" min="4" max="18" value="12" step="0.5">
+        </div>
+        <div class="slider-group">
+          <label>Diagonal menor (d₂) <span class="val" id="rombo-d2-val">8 cm</span></label>
+          <input type="range" id="rombo-d2" min="3" max="14" value="8" step="0.5">
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Fórmula paso a paso</h2>
+      <div class="formula-box">
+        <div class="paso">Área del rectángulo circunscrito = d₁ × d₂</div>
+        <div>A<sub>rect</sub> = <span id="rombo-fd1"></span> × <span id="rombo-fd2"></span> = <span id="rombo-frect"></span> cm²</div>
+        <hr class="sep" style="margin:8px 0">
+        <div>A = (d₁ × d₂) / 2</div>
+        <div>A = (<span id="rombo-fd1b"></span> × <span id="rombo-fd2b"></span>) / 2</div>
+        <div class="resultado">A = <span id="rombo-res"></span> cm²</div>
+      </div>
+    </div>
+    <div class="area-badge">
+      <div>
+        <div class="label">Área del rombo</div>
+        <div class="number" id="rombo-area">48</div>
+        <div class="unit">cm²</div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>¿Por qué funciona?</h2>
+      <div class="explicacion">
+        <strong>El rombo ocupa exactamente la mitad del rectángulo que forman sus diagonales.</strong><br>
+        Los cuatro triángulos sombreados que quedan fuera del rombo son congruentes con los
+        cuatro triángulos interiores, de modo que el rombo siempre ocupa la mitad del
+        rectángulo. Por eso dividimos entre 2: <strong>A = (d₁ × d₂) / 2</strong>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TRAPECIO
+══════════════════════════════════════════ -->
+<div class="main-wrap" id="panel-trapecio" style="display:none">
+  <div class="col-izq">
+    <div class="card">
+      <h2>Figura y demostración</h2>
+      <div class="svg-wrap"><svg id="svg-trap" viewBox="0 0 400 300"></svg></div>
+    </div>
+  </div>
+  <div class="col-der">
+    <div class="card">
+      <h2>Controles</h2>
+      <div class="controls">
+        <div class="slider-group">
+          <label>Base mayor (B) <span class="val" id="trap-B-val">12 cm</span></label>
+          <input type="range" id="trap-B" min="6" max="18" value="12" step="0.5">
+        </div>
+        <div class="slider-group">
+          <label>Base menor (b) <span class="val" id="trap-b-val">7 cm</span></label>
+          <input type="range" id="trap-b" min="2" max="14" value="7" step="0.5">
+        </div>
+        <div class="slider-group">
+          <label>Altura (h) <span class="val" id="trap-h-val">6 cm</span></label>
+          <input type="range" id="trap-h" min="2" max="12" value="6" step="0.5">
+        </div>
+        <div class="toggle-row">
+          <label class="toggle">
+            <input type="checkbox" id="trap-toggle">
+            <span class="toggle-slider"></span>
+          </label>
+          <span>Mostrar base media</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Fórmula paso a paso</h2>
+      <div class="formula-box">
+        <div class="paso">Base media = (B + b) / 2</div>
+        <div>m = (<span id="trap-fB"></span> + <span id="trap-fb"></span>) / 2 = <span id="trap-fm"></span> cm</div>
+        <hr class="sep" style="margin:8px 0">
+        <div>A = ((B + b) / 2) × h</div>
+        <div>A = <span id="trap-fm2"></span> × <span id="trap-fh"></span></div>
+        <div class="resultado">A = <span id="trap-res"></span> cm²</div>
+      </div>
+    </div>
+    <div class="area-badge">
+      <div>
+        <div class="label">Área del trapecio</div>
+        <div class="number" id="trap-area">57</div>
+        <div class="unit">cm²</div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>¿Por qué funciona?</h2>
+      <div class="explicacion">
+        <strong>La base media es el promedio de las dos bases.</strong><br>
+        Activa el toggle para ver la línea de la base media. Esa longitud media, multiplicada
+        por la altura, da el área del rectángulo equivalente que tiene el mismo área que el
+        trapecio: <strong>A = ((B + b) / 2) × h</strong>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+//  UTILIDADES
+// ══════════════════════════════════════════
+const fmt = v => Number.isInteger(v) ? v : parseFloat(v.toFixed(2));
+const $ = id => document.getElementById(id);
+
+// Escala: convierte cm a píxeles dentro del viewBox 0 0 400 300
+// Margen de trabajo: 40px cada lado => área útil 320×220
+function makeScale(maxCm, availPx) {
+  return availPx / maxCm;
+}
+
+// ══════════════════════════════════════════
+//  PESTAÑAS
+// ══════════════════════════════════════════
+const tabs = document.querySelectorAll('.tab-btn');
+const panels = {
+  triangulo:     $('panel-triangulo'),
+  rectangulo:    $('panel-rectangulo'),
+  paralelogramo: $('panel-paralelogramo'),
+  rombo:         $('panel-rombo'),
+  trapecio:      $('panel-trapecio'),
+};
+
+tabs.forEach(btn => {
+  btn.addEventListener('click', () => {
+    tabs.forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    const id = btn.dataset.tab;
+    Object.entries(panels).forEach(([k, el]) => {
+      el.style.display = k === id ? 'grid' : 'none';
+    });
+  });
+});
+
+// ══════════════════════════════════════════
+//  HELPERS SVG
+// ══════════════════════════════════════════
+function svgEl(tag, attrs) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
+function label(svg, x, y, text, opts = {}) {
+  const t = svgEl('text', {
+    x, y,
+    'text-anchor': opts.anchor || 'middle',
+    'dominant-baseline': opts.base || 'auto',
+    fill: opts.color || '#1A1D2E',
+    'font-size': opts.size || '13',
+    'font-family': 'Space Grotesk, system-ui, sans-serif',
+    'font-weight': opts.weight || '600',
+  });
+  t.textContent = text;
+  svg.appendChild(t);
+  return t;
+}
+
+function dimArrow(svg, x1, y1, x2, y2, text, opts = {}) {
+  // línea
+  const line = svgEl('line', {
+    x1, y1, x2, y2,
+    stroke: opts.color || '#1B4FD8',
+    'stroke-width': '1.5',
+    'marker-start': 'url(#arr-start)',
+    'marker-end': 'url(#arr-end)',
+  });
+  svg.appendChild(line);
+  const mx = (x1+x2)/2, my = (y1+y2)/2;
+  label(svg, mx + (opts.dx||0), my + (opts.dy||0), text, {
+    color: opts.color || '#1B4FD8', size: '12', ...opts
+  });
+}
+
+function addArrowDefs(svg) {
+  const defs = svgEl('defs', {});
+  ['arr-start','arr-end'].forEach((id, i) => {
+    const m = svgEl('marker', {
+      id, markerWidth:'6', markerHeight:'6',
+      refX:'3', refY:'3', orient: i===0 ? 'auto-start-reverse' : 'auto',
+    });
+    const p = svgEl('path', {
+      d:'M0,1 L3,3 L0,5', fill:'none',
+      stroke:'#1B4FD8','stroke-width':'1.2','stroke-linecap':'round'
+    });
+    m.appendChild(p); defs.appendChild(m);
+  });
+  svg.appendChild(defs);
+}
+
+// ══════════════════════════════════════════
+//  TRIÁNGULO
+// ══════════════════════════════════════════
+function drawTriangulo() {
+  const b = parseFloat($('tri-b').value);
+  const h = parseFloat($('tri-h').value);
+
+  $('tri-b-val').textContent = b + ' cm';
+  $('tri-h-val').textContent = h + ' cm';
+
+  const area = (b * h) / 2;
+  $('tri-area').textContent = fmt(area);
+  $('tri-fb').textContent = b;  $('tri-fb2').textContent = b;
+  $('tri-fh').textContent = h;  $('tri-fh2').textContent = h;
+  $('tri-frect').textContent = fmt(b*h);
+  $('tri-res').textContent = fmt(area);
+
+  const svg = $('svg-tri');
+  svg.innerHTML = '';
+  addArrowDefs(svg);
+
+  const VW=400, VH=300;
+  const pad=40;
+  const maxB=18, maxH=14;
+  const scaleX=(VW-2*pad)/maxB, scaleY=(VH-2*pad-30)/maxH;
+  const bpx=b*scaleX, hpx=h*scaleY;
+
+  // orígenes: centramos la figura
+  const ox=(VW-bpx)/2, oy=VH-pad;
+
+  // --- rectángulo auxiliar (fondo) ---
+  const rx=ox, ry=oy-hpx;
+  svg.appendChild(svgEl('rect',{
+    x:rx, y:ry, width:bpx, height:hpx,
+    fill:'none', stroke:'#1B4FD8', 'stroke-width':'1.5',
+    'stroke-dasharray':'6,4',
+  }));
+
+  // Triángulo: vértice superior centrado sobre la base
+  const tx=ox+bpx/2, ty=oy-hpx; // vértice superior
+  const A=[ox,oy], B_=[ox+bpx,oy], C=[tx,ty];
+
+  // --- zonas fuera del triángulo (triángulos sombreados) ---
+  // izquierda: A, (ox,ty), C
+  svg.appendChild(svgEl('polygon',{
+    points:`${ox},${oy} ${ox},${ty} ${tx},${ty}`,
+    fill:'#BFCFF7', opacity:'0.7',
+  }));
+  // derecha: B_, (ox+bpx,ty), C
+  svg.appendChild(svgEl('polygon',{
+    points:`${ox+bpx},${oy} ${ox+bpx},${ty} ${tx},${ty}`,
+    fill:'#BFCFF7', opacity:'0.7',
+  }));
+
+  // --- triángulo relleno ---
+  svg.appendChild(svgEl('polygon',{
+    points:`${A[0]},${A[1]} ${B_[0]},${B_[1]} ${C[0]},${C[1]}`,
+    fill:'#93B4F5', opacity:'0.85',
+    stroke:'#1B4FD8','stroke-width':'2',
+  }));
+
+  // --- línea de altura discontinua ---
+  svg.appendChild(svgEl('line',{
+    x1:tx, y1:ty, x2:tx, y2:oy,
+    stroke:'#D95F02','stroke-width':'1.8','stroke-dasharray':'5,3',
+  }));
+  // marca ángulo recto
+  const ms=8;
+  svg.appendChild(svgEl('rect',{x:tx,y:oy-ms,width:ms,height:ms,
+    fill:'none',stroke:'#D95F02','stroke-width':'1.2'}));
+
+  // --- etiquetas dimensiones ---
+  dimArrow(svg, ox, oy+16, ox+bpx, oy+16, `b = ${b} cm`, {dy:0, dx:0, color:'#1A1D2E', size:'12'});
+  dimArrow(svg, ox-18, oy, ox-18, oy-hpx, `h = ${h} cm`, {color:'#D95F02', anchor:'end', dx:0, size:'12'});
+
+  // etiqueta rectángulo
+  label(svg, ox+bpx/2, ry-6, 'Rectángulo auxiliar', {color:'#1B4FD8',size:'11', weight:'500'});
+  label(svg, ox+bpx*0.18, oy-hpx*0.35, '½', {color:'#1B4FD8', size:'15'});
+}
+
+$('tri-b').addEventListener('input', drawTriangulo);
+$('tri-h').addEventListener('input', drawTriangulo);
+drawTriangulo();
+
+// ══════════════════════════════════════════
+//  RECTÁNGULO
+// ══════════════════════════════════════════
+function drawRectangulo() {
+  const b = parseInt($('rect-b').value);
+  const h = parseInt($('rect-h').value);
+
+  $('rect-b-val').textContent = b + ' cm';
+  $('rect-h-val').textContent = h + ' cm';
+
+  const area = b * h;
+  $('rect-area').textContent = area;
+  $('rect-fb').textContent = b; $('rect-fb2').textContent = b;
+  $('rect-fh').textContent = h; $('rect-fh2').textContent = h;
+  $('rect-res').textContent = area;
+
+  const svg = $('svg-rect');
+  svg.innerHTML = '';
+  addArrowDefs(svg);
+
+  const VW=400, VH=300, pad=45;
+  const maxB=15, maxH=10;
+  const scaleX=(VW-2*pad)/maxB, scaleY=(VH-2*pad-20)/maxH;
+  const bpx=b*scaleX, hpx=h*scaleY;
+  const ox=(VW-bpx)/2, oy=(VH-hpx)/2+10;
+
+  // rectángulo principal
+  svg.appendChild(svgEl('rect',{
+    x:ox, y:oy, width:bpx, height:hpx,
+    fill:'#E8EEFB', stroke:'#1B4FD8', 'stroke-width':'2',
+  }));
+
+  // cuadrícula unitaria
+  const cw=scaleX, ch=scaleY;
+  for(let i=1;i<b;i++){
+    svg.appendChild(svgEl('line',{
+      x1:ox+i*cw,y1:oy,x2:ox+i*cw,y2:oy+hpx,
+      stroke:'#8BA8E8','stroke-width':'0.8',
+    }));
+  }
+  for(let j=1;j<h;j++){
+    svg.appendChild(svgEl('line',{
+      x1:ox,y1:oy+j*ch,x2:ox+bpx,y2:oy+j*ch,
+      stroke:'#8BA8E8','stroke-width':'0.8',
+    }));
+  }
+
+  // número de cuadrados en cada celda (solo si hay ≤10×10=100)
+  if(b<=10 && h<=7) {
+    for(let i=0;i<b;i++) for(let j=0;j<h;j++){
+      const cx=ox+i*cw+cw/2, cy=oy+j*ch+ch/2;
+      const n=j*b+i+1;
+      const t=svgEl('text',{
+        x:cx,y:cy,'text-anchor':'middle','dominant-baseline':'middle',
+        fill:'#1B4FD8','font-size': cw>30?'11':'8',
+        'font-family':'JetBrains Mono,monospace','font-weight':'600',opacity:'0.6',
+      });
+      t.textContent=n;
+      svg.appendChild(t);
+    }
+  }
+
+  // borde exterior más grueso encima
+  svg.appendChild(svgEl('rect',{
+    x:ox,y:oy,width:bpx,height:hpx,
+    fill:'none',stroke:'#1B4FD8','stroke-width':'2.5',
+  }));
+
+  // etiquetas
+  dimArrow(svg,ox,oy+hpx+18,ox+bpx,oy+hpx+18,`b = ${b} cm`,{color:'#1A1D2E',size:'12'});
+  dimArrow(svg,ox-20,oy,ox-20,oy+hpx,`h = ${h} cm`,{color:'#D95F02',anchor:'end',size:'12'});
+
+  // total cuadrados
+  label(svg,ox+bpx/2,oy-8,`${b} × ${h} = ${area} cuadrados de 1 cm²`,{color:'#1B4FD8',size:'12',weight:'500'});
+}
+
+$('rect-b').addEventListener('input', drawRectangulo);
+$('rect-h').addEventListener('input', drawRectangulo);
+drawRectangulo();
+
+// ══════════════════════════════════════════
+//  PARALELOGRAMO
+// ══════════════════════════════════════════
+function drawParalelogramo() {
+  const b = parseFloat($('par-b').value);
+  const h = parseFloat($('par-h').value);
+  const s = parseFloat($('par-s').value); // inclinación
+
+  $('par-b-val').textContent = b + ' cm';
+  $('par-h-val').textContent = h + ' cm';
+  $('par-s-val').textContent = s + ' cm';
+
+  const area = b * h;
+  $('par-area').textContent = fmt(area);
+  $('par-fb').textContent = b;
+  $('par-fh').textContent = h;
+  $('par-res').textContent = fmt(area);
+
+  const svg = $('svg-par');
+  svg.innerHTML = '';
+  addArrowDefs(svg);
+
+  const VW=400,VH=300,pad=45;
+  const maxB=16,maxH=12,maxS=5;
+  const scaleX=(VW-2*pad-maxS*10)/(maxB+maxS), scaleY=(VH-2*pad-30)/maxH;
+  const bpx=b*scaleX, hpx=h*scaleY, spx=s*scaleX;
+
+  const ox=pad+(maxS-s)*scaleX/2;
+  const oy=VH-pad;
+
+  // puntos del paralelogramo: A(ox,oy), B(ox+bpx,oy), C(ox+bpx+spx,oy-hpx), D(ox+spx,oy-hpx)
+  const Ax=ox,      Ay=oy;
+  const Bx=ox+bpx,  By=oy;
+  const Cx=ox+bpx+spx, Cy=oy-hpx;
+  const Dx=ox+spx,  Dy=oy-hpx;
+
+  // triángulo a recortar (derecha): B(Bx,By), C(Cx,Cy), (Bx,Cy)
+  const ex=Bx, ey=Cy; // esquina del rectángulo equivalente
+
+  // rectángulo equivalente (fondo, discontinuo)
+  svg.appendChild(svgEl('rect',{
+    x:Ax, y:Dy, width:bpx, height:hpx,
+    fill:'#E4F4EE', stroke:'#0F7B55','stroke-width':'1.5','stroke-dasharray':'5,3',
+  }));
+
+  // cuerpo principal del paralelogramo (sin el triángulo derecho) = trapecio
+  svg.appendChild(svgEl('polygon',{
+    points:`${Ax},${Ay} ${Bx},${By} ${ex},${ey} ${Dx},${Dy}`,
+    fill:'#93B4F5', opacity:'0.75', stroke:'none',
+  }));
+
+  // triángulo recortado a la derecha
+  svg.appendChild(svgEl('polygon',{
+    points:`${Bx},${By} ${Cx},${Cy} ${ex},${ey}`,
+    fill:'#0F7B55', opacity:'0.6',
+  }));
+
+  // flecha de traslado (del triángulo derecho al izquierdo)
+  const arrMidX=(Bx+ex)/2+8, arrMidY=(By+ey)/2;
+  const arrowLen=spx+bpx*0.15;
+  svg.appendChild(svgEl('line',{
+    x1:arrMidX, y1:arrMidY,
+    x2:arrMidX-arrowLen, y2:arrMidY,
+    stroke:'#0F7B55','stroke-width':'2',
+    'marker-end':'url(#parr)',
+  }));
+  // definir marcador flecha verde
+  const defs=svgEl('defs',{});
+  const mk=svgEl('marker',{id:'parr',markerWidth:'8',markerHeight:'8',refX:'6',refY:'4',orient:'auto'});
+  mk.appendChild(svgEl('path',{d:'M0,0 L8,4 L0,8 Z',fill:'#0F7B55'}));
+  defs.appendChild(mk);
+  svg.appendChild(defs);
+
+  // contorno paralelogramo
+  svg.appendChild(svgEl('polygon',{
+    points:`${Ax},${Ay} ${Bx},${By} ${Cx},${Cy} ${Dx},${Dy}`,
+    fill:'none', stroke:'#1B4FD8','stroke-width':'2',
+  }));
+
+  // línea de altura discontinua
+  svg.appendChild(svgEl('line',{
+    x1:Bx,y1:By,x2:ex,y2:ey,
+    stroke:'#D95F02','stroke-width':'1.8','stroke-dasharray':'5,3',
+  }));
+  const ms=8;
+  svg.appendChild(svgEl('rect',{x:ex,y:ey,width:ms,height:ms,
+    fill:'none',stroke:'#D95F02','stroke-width':'1.2'}));
+
+  // etiquetas
+  dimArrow(svg,Ax,Ay+18,Bx,Ay+18,`b = ${b} cm`,{color:'#1A1D2E',size:'12'});
+  dimArrow(svg,Bx+14,By,Bx+14,ey,`h = ${h} cm`,{color:'#D95F02',anchor:'start',size:'12'});
+  label(svg,(Ax+Dx)/2-18,(Ay+Dy)/2,'Rectángulo\nequivalente',{color:'#0F7B55',size:'10',weight:'500',anchor:'middle'});
+}
+
+$('par-b').addEventListener('input', drawParalelogramo);
+$('par-h').addEventListener('input', drawParalelogramo);
+$('par-s').addEventListener('input', drawParalelogramo);
+drawParalelogramo();
+
+// ══════════════════════════════════════════
+//  ROMBO
+// ══════════════════════════════════════════
+function drawRombo() {
+  const d1 = parseFloat($('rombo-d1').value);
+  const d2 = parseFloat($('rombo-d2').value);
+
+  $('rombo-d1-val').textContent = d1 + ' cm';
+  $('rombo-d2-val').textContent = d2 + ' cm';
+
+  const area = (d1 * d2) / 2;
+  $('rombo-area').textContent = fmt(area);
+  $('rombo-fd1').textContent=d1; $('rombo-fd1b').textContent=d1;
+  $('rombo-fd2').textContent=d2; $('rombo-fd2b').textContent=d2;
+  $('rombo-frect').textContent=fmt(d1*d2);
+  $('rombo-res').textContent=fmt(area);
+
+  const svg=$('svg-rombo');
+  svg.innerHTML='';
+  addArrowDefs(svg);
+
+  const VW=400,VH=300,pad=50;
+  const max1=18,max2=14;
+  const scaleX=(VW-2*pad)/max1, scaleY=(VH-2*pad-20)/max2;
+  const d1px=d1*scaleX, d2px=d2*scaleY;
+
+  const cx=VW/2, cy=VH/2+5;
+
+  // esquinas rectángulo
+  const rx=cx-d1px/2, ry=cy-d2px/2;
+  const rw=d1px, rh=d2px;
+
+  // vértices rombo: top, right, bottom, left
+  const T=[cx,cy-d2px/2], R=[cx+d1px/2,cy], B_=[cx,cy+d2px/2], L=[cx-d1px/2,cy];
+
+  // cuatro triángulos exteriores (fuera del rombo, dentro del rectángulo)
+  // esquina TL: (rx,ry), T, L
+  svg.appendChild(svgEl('polygon',{points:`${rx},${ry} ${T[0]},${T[1]} ${L[0]},${L[1]}`,fill:'#BFCFF7',opacity:'0.8'}));
+  // esquina TR: (rx+rw,ry), T, R
+  svg.appendChild(svgEl('polygon',{points:`${rx+rw},${ry} ${T[0]},${T[1]} ${R[0]},${R[1]}`,fill:'#BFCFF7',opacity:'0.8'}));
+  // esquina BR: (rx+rw,ry+rh), B_, R
+  svg.appendChild(svgEl('polygon',{points:`${rx+rw},${ry+rh} ${B_[0]},${B_[1]} ${R[0]},${R[1]}`,fill:'#BFCFF7',opacity:'0.8'}));
+  // esquina BL: (rx,ry+rh), B_, L
+  svg.appendChild(svgEl('polygon',{points:`${rx},${ry+rh} ${B_[0]},${B_[1]} ${L[0]},${L[1]}`,fill:'#BFCFF7',opacity:'0.8'}));
+
+  // rectángulo circunscrito
+  svg.appendChild(svgEl('rect',{
+    x:rx,y:ry,width:rw,height:rh,
+    fill:'none',stroke:'#1B4FD8','stroke-width':'1.5','stroke-dasharray':'6,4',
+  }));
+
+  // rombo relleno
+  svg.appendChild(svgEl('polygon',{
+    points:`${T[0]},${T[1]} ${R[0]},${R[1]} ${B_[0]},${B_[1]} ${L[0]},${L[1]}`,
+    fill:'#93B4F5',opacity:'0.85',
+    stroke:'#1B4FD8','stroke-width':'2.2',
+  }));
+
+  // diagonales
+  svg.appendChild(svgEl('line',{x1:L[0],y1:L[1],x2:R[0],y2:R[1],stroke:'#D95F02','stroke-width':'1.8','stroke-dasharray':'4,3'}));
+  svg.appendChild(svgEl('line',{x1:T[0],y1:T[1],x2:B_[0],y2:B_[1],stroke:'#D95F02','stroke-width':'1.8','stroke-dasharray':'4,3'}));
+  // marca centro
+  svg.appendChild(svgEl('circle',{cx,cy,r:'3',fill:'#D95F02'}));
+  const ms2=6;
+  svg.appendChild(svgEl('rect',{x:cx,y:cy-ms2,width:ms2,height:ms2,fill:'none',stroke:'#D95F02','stroke-width':'1.2'}));
+
+  // etiquetas diagonales
+  label(svg,cx+d1px/4,cy-8,`d₁ = ${d1} cm`,{color:'#D95F02',size:'12',anchor:'middle'});
+  label(svg,cx+d1px/2+28,cy,`d₂ = ${d2} cm`,{color:'#D95F02',size:'12',anchor:'start'});
+
+  // etiqueta ½
+  label(svg,cx-d1px/4,cy-d2px/4,'½',{color:'#1B4FD8',size:'18'});
+}
+
+$('rombo-d1').addEventListener('input', drawRombo);
+$('rombo-d2').addEventListener('input', drawRombo);
+drawRombo();
+
+// ══════════════════════════════════════════
+//  TRAPECIO
+// ══════════════════════════════════════════
+function drawTrapecio() {
+  const B_ = parseFloat($('trap-B').value);
+  const b  = parseFloat($('trap-b').value);
+  const h  = parseFloat($('trap-h').value);
+  const showMed = $('trap-toggle').checked;
+
+  // b no puede superar B
+  const bReal = Math.min(b, B_-0.5);
+
+  $('trap-B-val').textContent = B_ + ' cm';
+  $('trap-b-val').textContent = bReal + ' cm';
+  $('trap-h-val').textContent = h + ' cm';
+
+  const m = (B_ + bReal) / 2;
+  const area = m * h;
+
+  $('trap-area').textContent = fmt(area);
+  $('trap-fB').textContent = B_;
+  $('trap-fb').textContent = bReal;
+  $('trap-fm').textContent = fmt(m);
+  $('trap-fm2').textContent = fmt(m);
+  $('trap-fh').textContent = h;
+  $('trap-res').textContent = fmt(area);
+
+  const svg=$('svg-trap');
+  svg.innerHTML='';
+  addArrowDefs(svg);
+
+  const VW=400,VH=300,pad=48;
+  const maxB=18,maxH=12;
+  const scaleX=(VW-2*pad)/maxB, scaleY=(VH-2*pad-30)/maxH;
+  const Bpx=B_*scaleX, bpx=bReal*scaleX, hpx=h*scaleY;
+
+  const ox=(VW-Bpx)/2, oy=VH-pad;
+  const offset=(Bpx-bpx)/2;
+
+  // puntos trapecio: A(ox,oy), B(ox+Bpx,oy), C(ox+offset+bpx,oy-hpx), D(ox+offset,oy-hpx)
+  const Ax=ox,Ay=oy;
+  const Bx=ox+Bpx,By=oy;
+  const Cx=ox+offset+bpx,Cy=oy-hpx;
+  const Dx=ox+offset,Dy=oy-hpx;
+
+  // relleno trapecio
+  svg.appendChild(svgEl('polygon',{
+    points:`${Ax},${Ay} ${Bx},${By} ${Cx},${Cy} ${Dx},${Dy}`,
+    fill:'#93B4F5',opacity:'0.75',
+  }));
+
+  // altura (línea discontinua)
+  const hx=ox+offset;
+  svg.appendChild(svgEl('line',{
+    x1:hx,y1:oy,x2:hx,y2:oy-hpx,
+    stroke:'#D95F02','stroke-width':'1.8','stroke-dasharray':'5,3',
+  }));
+  const ms=8;
+  svg.appendChild(svgEl('rect',{x:hx,y:oy-ms,width:ms,height:ms,
+    fill:'none',stroke:'#D95F02','stroke-width':'1.2'}));
+
+  // contorno
+  svg.appendChild(svgEl('polygon',{
+    points:`${Ax},${Ay} ${Bx},${By} ${Cx},${Cy} ${Dx},${Dy}`,
+    fill:'none',stroke:'#1B4FD8','stroke-width':'2.2',
+  }));
+
+  // base media (toggle)
+  if(showMed) {
+    const mpx=m*scaleX;
+    const mx1=(VW-mpx)/2, mx2=mx1+mpx;
+    const my=oy-hpx/2;
+    svg.appendChild(svgEl('line',{
+      x1:mx1,y1:my,x2:mx2,y2:my,
+      stroke:'#0F7B55','stroke-width':'2.5',
+    }));
+    label(svg,(mx1+mx2)/2,my-8,`m = ${fmt(m)} cm`,{color:'#0F7B55',size:'12',weight:'600'});
+  }
+
+  // etiquetas
+  dimArrow(svg,Ax,Ay+18,Bx,Ay+18,`B = ${B_} cm`,{color:'#1A1D2E',size:'12'});
+  dimArrow(svg,Dx,Dy-14,Cx,Dy-14,`b = ${bReal} cm`,{color:'#1B4FD8',size:'12'});
+  dimArrow(svg,hx-20,Ay,hx-20,Dy,`h = ${h} cm`,{color:'#D95F02',anchor:'end',size:'12'});
+}
+
+$('trap-B').addEventListener('input', drawTrapecio);
+$('trap-b').addEventListener('input', drawTrapecio);
+$('trap-h').addEventListener('input', drawTrapecio);
+$('trap-toggle').addEventListener('change', drawTrapecio);
+drawTrapecio();
+
+// ── Panel inicial en grid ──
+panels.triangulo.style.display='grid';
+
+// Redibujar al cambiar de pestaña
+tabs.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const id = btn.dataset.tab;
+    // forzar redibujo
+    setTimeout(()=>{
+      if(id==='triangulo') drawTriangulo();
+      else if(id==='rectangulo') drawRectangulo();
+      else if(id==='paralelogramo') drawParalelogramo();
+      else if(id==='rombo') drawRombo();
+      else if(id==='trapecio') drawTrapecio();
+    },10);
+  });
+});
+</script>
+</body>
+</html>

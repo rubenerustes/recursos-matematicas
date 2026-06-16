@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Razones Trigonométricas — 3.º ESO</title>
+  <style>
+    /* ── Tokens ─────────────────────────────────────────── */
+    :root {
+      --bg:        #0f1623;
+      --panel:     #1a2336;
+      --border:    #2e3f5c;
+      --accent:    #4fc3f7;
+      --accent2:   #f7c948;
+      --accent3:   #74e8a0;
+      --red:       #f7706a;
+      --text:      #e8edf5;
+      --muted:     #8fa3be;
+      --radius:    14px;
+      --font-body: 'Segoe UI', system-ui, sans-serif;
+      --font-mono: 'Courier New', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 40px;
+      gap: 0;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
+    header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    header .eyebrow {
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+    header h1 {
+      font-size: clamp(1.4rem, 4vw, 2rem);
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+    header p {
+      margin-top: 8px;
+      font-size: 0.92rem;
+      color: var(--muted);
+      max-width: 480px;
+      line-height: 1.5;
+    }
+
+    /* ── Main grid ───────────────────────────────────────── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      width: 100%;
+      max-width: 860px;
+    }
+    @media (min-width: 640px) {
+      .main-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    /* ── Canvas card ─────────────────────────────────────── */
+    .canvas-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+    canvas {
+      border-radius: 8px;
+      background: #111d2e;
+      cursor: grab;
+      touch-action: none;
+      display: block;
+      width: 100%;
+      max-width: 380px;
+      aspect-ratio: 1;
+    }
+    canvas:active { cursor: grabbing; }
+
+    /* Angle badge */
+    .angle-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #0d1825;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 18px;
+    }
+    .angle-badge .label { font-size: 0.78rem; color: var(--muted); }
+    .angle-badge .value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--accent2);
+      font-family: var(--font-mono);
+      min-width: 64px;
+      text-align: right;
+    }
+    .angle-badge .unit { font-size: 0.9rem; color: var(--muted); }
+
+    /* Drag hint */
+    .hint {
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-align: center;
+    }
+    .hint span { color: var(--accent); }
+
+    /* ── Ratios card ─────────────────────────────────────── */
+    .ratios-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .ratios-title {
+      font-size: 0.8rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+    }
+
+    /* Each ratio row */
+    .ratio-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .ratio-label {
+      font-size: 0.82rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+    .ratio-formula {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .ratio-name {
+      font-family: var(--font-mono);
+      font-size: 1rem;
+      font-weight: 700;
+      min-width: 52px;
+    }
+    .ratio-name.sen  { color: var(--accent); }
+    .ratio-name.cos  { color: var(--accent3); }
+    .ratio-name.tan  { color: var(--red); }
+
+    .fraction {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+      gap: 1px;
+      min-width: 90px;
+    }
+    .fraction .num, .fraction .den { line-height: 1.3; }
+    .fraction .bar { width: 100%; height: 1px; background: var(--border); margin: 2px 0; }
+
+    .equals { color: var(--muted); font-size: 1rem; }
+
+    .ratio-value {
+      font-family: var(--font-mono);
+      font-size: 1.4rem;
+      font-weight: 700;
+      min-width: 56px;
+      text-align: right;
+    }
+    .ratio-value.sen { color: var(--accent); }
+    .ratio-value.cos { color: var(--accent3); }
+    .ratio-value.tan { color: var(--red); }
+
+    /* Bar indicator */
+    .bar-track {
+      height: 5px;
+      background: #0d1825;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.05s linear;
+    }
+    .bar-fill.sen { background: var(--accent); }
+    .bar-fill.cos { background: var(--accent3); }
+    .bar-fill.tan { background: var(--red); }
+
+    /* ── Memory table ────────────────────────────────────── */
+    .table-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 22px;
+      grid-column: 1 / -1;
+    }
+    .table-card h2 {
+      font-size: 0.8rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    th {
+      text-align: center;
+      padding: 6px 10px;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.76rem;
+      letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      text-align: center;
+      padding: 7px 10px;
+      border-bottom: 1px solid #1e2d42;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      transition: background 0.1s;
+    }
+    tr.active-row td { background: #1f3050; }
+    tr:last-child td { border-bottom: none; }
+    td:first-child { color: var(--accent2); font-weight: 700; }
+    td.sen-col { color: var(--accent); }
+    td.cos-col { color: var(--accent3); }
+    td.tan-col { color: var(--red); }
+
+    /* ── Footer ─────────────────────────────────────────── */
+    footer {
+      margin-top: 32px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="eyebrow">3.º ESO · Unidad 9 · Geometría en el plano</div>
+    <h1>Razones Trigonométricas</h1>
+    <p>Arrastra el punto naranja para cambiar el ángulo α y observa cómo varían las razones en tiempo real.</p>
+  </header>
+
+  <div class="main-grid">
+
+    <!-- ── Canvas ── -->
+    <div class="canvas-card">
+      <canvas id="trig" width="360" height="360"></canvas>
+      <div class="angle-badge">
+        <span class="label">Ángulo α =</span>
+        <span class="value" id="angleDeg">30,0</span>
+        <span class="unit">°</span>
+      </div>
+      <p class="hint">⟵ <span>Arrastra</span> el punto naranja ⟶</p>
+    </div>
+
+    <!-- ── Ratios ── -->
+    <div class="ratios-card">
+      <div class="ratios-title">Razones trigonométricas</div>
+
+      <!-- sen -->
+      <div class="ratio-row">
+        <div class="ratio-label">Seno</div>
+        <div class="ratio-formula">
+          <span class="ratio-name sen">sen α</span>
+          <span class="equals">=</span>
+          <div class="fraction">
+            <span class="num">cateto opuesto</span>
+            <div class="bar"></div>
+            <span class="den">hipotenusa</span>
+          </div>
+          <span class="equals">=</span>
+          <span class="ratio-value sen" id="valSen">0,50</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill sen" id="barSen" style="width:50%"></div></div>
+      </div>
+
+      <!-- cos -->
+      <div class="ratio-row">
+        <div class="ratio-label">Coseno</div>
+        <div class="ratio-formula">
+          <span class="ratio-name cos">cos α</span>
+          <span class="equals">=</span>
+          <div class="fraction">
+            <span class="num">cateto adyacente</span>
+            <div class="bar"></div>
+            <span class="den">hipotenusa</span>
+          </div>
+          <span class="equals">=</span>
+          <span class="ratio-value cos" id="valCos">0,87</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill cos" id="barCos" style="width:87%"></div></div>
+      </div>
+
+      <!-- tan -->
+      <div class="ratio-row">
+        <div class="ratio-label">Tangente</div>
+        <div class="ratio-formula">
+          <span class="ratio-name tan">tan α</span>
+          <span class="equals">=</span>
+          <div class="fraction">
+            <span class="num">cateto opuesto</span>
+            <div class="bar"></div>
+            <span class="den">cateto adyacente</span>
+          </div>
+          <span class="equals">=</span>
+          <span class="ratio-value tan" id="valTan">0,58</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill tan" id="barTan" style="width:58%"></div></div>
+      </div>
+
+    </div>
+
+    <!-- ── Notable angles table ── -->
+    <div class="table-card">
+      <h2>Ángulos notables — tabla de referencia</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>α</th>
+            <th class="sen-col">sen α</th>
+            <th class="cos-col">cos α</th>
+            <th class="tan-col">tan α</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr data-angle="30"><td>30°</td><td class="sen-col">0,50</td><td class="cos-col">0,87</td><td class="tan-col">0,58</td></tr>
+          <tr data-angle="45"><td>45°</td><td class="sen-col">0,71</td><td class="cos-col">0,71</td><td class="tan-col">1,00</td></tr>
+          <tr data-angle="60"><td>60°</td><td class="sen-col">0,87</td><td class="cos-col">0,50</td><td class="tan-col">1,73</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <footer>
+    Comunidad de Madrid · Decreto 65/2022 · Matemáticas 3.º ESO<br>
+    Simulación interactiva — Geometría en el plano
+  </footer>
+
+<script>
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function fmt(n) {
+  // Format to 2 decimal places using comma (Spanish locale)
+  return n.toFixed(2).replace('.', ',');
+}
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let angleDeg = 30; // initial angle
+
+// ── Canvas setup ─────────────────────────────────────────────────────────────
+const canvas = document.getElementById('trig');
+const ctx    = canvas.getContext('2d');
+
+// We'll work in a logical 360×360 space and scale to the CSS size.
+const W = 360, H = 360;
+
+// Triangle geometry: fix the right-angle vertex (B) and hypotenuse vertex (A).
+// A = bottom-left (right-angle), C = bottom-right, P = top (draggable).
+// We keep A fixed, the hypotenuse length fixed, and P moves on a circle.
+
+const ORIGIN = { x: 60, y: 280 };   // right-angle vertex A (bottom-left)
+const HYP    = 220;                  // fixed hypotenuse length in px
+
+function angleToPoint(deg) {
+  const rad = deg * Math.PI / 180;
+  return {
+    x: ORIGIN.x + HYP * Math.cos(rad),
+    y: ORIGIN.y - HYP * Math.sin(rad)   // canvas Y is flipped
+  };
+}
+
+function pointToAngle(px, py) {
+  const dx = px - ORIGIN.x;
+  const dy = ORIGIN.y - py;            // flip back
+  let deg = Math.atan2(dy, dx) * 180 / Math.PI;
+  return clamp(deg, 5, 85);
+}
+
+// ── Draw ──────────────────────────────────────────────────────────────────────
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  const rad = angleDeg * Math.PI / 180;
+
+  // Three vertices
+  const A = { ...ORIGIN };                          // right-angle
+  const B = { x: ORIGIN.x + HYP * Math.cos(rad),   // hypotenuse tip (draggable)
+               y: ORIGIN.y - HYP * Math.sin(rad) };
+  const C = { x: ORIGIN.x + HYP * Math.cos(rad),   // foot of perpendicular
+               y: ORIGIN.y };
+
+  // ── Triangle fill ──
+  ctx.beginPath();
+  ctx.moveTo(A.x, A.y);
+  ctx.lineTo(B.x, B.y);
+  ctx.lineTo(C.x, C.y);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(79,195,247,0.06)';
+  ctx.fill();
+
+  // ── Sides ──
+  // Hypotenuse (A→B)
+  drawSide(A, B, '#4fc3f7', 2.8);
+  // Cateto adyacente (A→C)
+  drawSide(A, C, '#74e8a0', 2.2);
+  // Cateto opuesto (C→B)
+  drawSide(C, B, '#f7706a', 2.2);
+
+  // ── Right-angle marker at C ──
+  const sq = 12;
+  ctx.beginPath();
+  ctx.moveTo(C.x - sq, C.y);
+  ctx.lineTo(C.x - sq, C.y - sq);
+  ctx.lineTo(C.x,      C.y - sq);
+  ctx.strokeStyle = '#8fa3be';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // ── Angle arc at A ──
+  ctx.beginPath();
+  ctx.arc(A.x, A.y, 36, -rad, 0, true);    // note: canvas Y-flip means we go -rad→0
+  ctx.strokeStyle = '#f7c948';
+  ctx.lineWidth = 1.8;
+  ctx.stroke();
+
+  // α label
+  const midAngle = rad / 2;
+  const labelR = 50;
+  ctx.fillStyle = '#f7c948';
+  ctx.font = 'bold 15px Segoe UI, sans-serif';
+  ctx.fillText('α', A.x + labelR * Math.cos(midAngle) - 5,
+                    A.y - labelR * Math.sin(midAngle) + 5);
+
+  // ── Side labels ──
+  // Hipotenusa — midpoint of A→B, offset left/up
+  midLabel(A, B, 'hipotenusa', '#4fc3f7', -18, -8);
+  // Cateto adyacente — midpoint of A→C, below
+  midLabel(A, C, 'cateto adyacente', '#74e8a0', 0, 20);
+  // Cateto opuesto — midpoint of C→B, right
+  midLabel(C, B, 'cateto opuesto', '#f7706a', 10, 0);
+
+  // ── Draggable point B ──
+  ctx.beginPath();
+  ctx.arc(B.x, B.y, 10, 0, 2 * Math.PI);
+  ctx.fillStyle = '#f7c948';
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Tiny arrow hint on first render (fade after 3 s handled in CSS)
+  ctx.beginPath();
+  ctx.arc(B.x, B.y, 14, 0, 2 * Math.PI);
+  ctx.strokeStyle = 'rgba(247,201,72,0.3)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+function drawSide(p1, p2, color, width) {
+  ctx.beginPath();
+  ctx.moveTo(p1.x, p1.y);
+  ctx.lineTo(p2.x, p2.y);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineJoin = 'round';
+  ctx.lineCap  = 'round';
+  ctx.stroke();
+}
+
+function midLabel(p1, p2, text, color, offX, offY) {
+  const mx = (p1.x + p2.x) / 2 + offX;
+  const my = (p1.y + p2.y) / 2 + offY;
+  ctx.fillStyle = color;
+  ctx.font = '11px Segoe UI, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(text, mx, my);
+  ctx.textAlign = 'left';  // reset
+}
+
+// ── Update UI ─────────────────────────────────────────────────────────────────
+function update() {
+  const rad = angleDeg * Math.PI / 180;
+  const s = Math.sin(rad);
+  const c = Math.cos(rad);
+  const t = Math.tan(rad);
+
+  document.getElementById('angleDeg').textContent = angleDeg.toFixed(1).replace('.', ',');
+  document.getElementById('valSen').textContent = fmt(s);
+  document.getElementById('valCos').textContent = fmt(c);
+  document.getElementById('valTan').textContent = fmt(t);
+
+  // Bars: sen and cos go 0→1, tan can exceed 1 so cap at 100%
+  document.getElementById('barSen').style.width = (s * 100).toFixed(1) + '%';
+  document.getElementById('barCos').style.width = (c * 100).toFixed(1) + '%';
+  document.getElementById('barTan').style.width = clamp(t * 57.7, 0, 100).toFixed(1) + '%';
+
+  // Highlight table row
+  document.querySelectorAll('#tableBody tr').forEach(tr => {
+    tr.classList.remove('active-row');
+    const a = parseFloat(tr.dataset.angle);
+    if (Math.abs(angleDeg - a) < 3) tr.classList.add('active-row');
+  });
+
+  draw();
+}
+
+// ── Drag logic ────────────────────────────────────────────────────────────────
+function getCanvasPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = W / rect.width;
+  const scaleY = H / rect.height;
+  const src = e.touches ? e.touches[0] : e;
+  return {
+    x: (src.clientX - rect.left) * scaleX,
+    y: (src.clientY - rect.top)  * scaleY
+  };
+}
+
+let dragging = false;
+
+canvas.addEventListener('mousedown',  () => { dragging = true; });
+canvas.addEventListener('mousemove',  e => {
+  if (!dragging) return;
+  const p = getCanvasPos(e);
+  angleDeg = pointToAngle(p.x, p.y);
+  update();
+});
+canvas.addEventListener('mouseup',   () => { dragging = false; });
+canvas.addEventListener('mouseleave',() => { dragging = false; });
+
+canvas.addEventListener('touchstart', e => { dragging = true; e.preventDefault(); }, { passive: false });
+canvas.addEventListener('touchmove',  e => {
+  if (!dragging) return;
+  e.preventDefault();
+  const p = getCanvasPos(e);
+  angleDeg = pointToAngle(p.x, p.y);
+  update();
+}, { passive: false });
+canvas.addEventListener('touchend', () => { dragging = false; });
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+update();
+</script>
+</body>
+</html>
