@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teorema de Tales — 3.º ESO</title>
+<style>
+  :root {
+    --bg:        #0f1117;
+    --surface:   #1a1d27;
+    --panel:     #1e2133;
+    --border:    #2e3350;
+    --accent:    #5b8fff;
+    --green:     #3ecf8e;
+    --amber:     #f6c445;
+    --pink:      #ff6b9d;
+    --text:      #e8ecf4;
+    --muted:     #7a8099;
+    --ray-r:     #5b8fff;
+    --ray-s:     #ff6b9d;
+    --par1:      #3ecf8e;
+    --par2:      #f6c445;
+    --font-ui:   'Segoe UI', system-ui, sans-serif;
+    --font-mono: 'Courier New', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+    gap: 14px;
+  }
+
+  header {
+    text-align: center;
+    max-width: 740px;
+  }
+  header h1 {
+    font-size: 1.55rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  header h1 span { color: var(--accent); }
+  header p {
+    font-size: 0.9rem;
+    color: var(--muted);
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+
+  .main-layout {
+    display: flex;
+    gap: 14px;
+    width: 100%;
+    max-width: 1020px;
+    align-items: flex-start;
+  }
+
+  /* Canvas wrapper */
+  .canvas-wrap {
+    flex: 1 1 580px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    position: relative;
+    user-select: none;
+  }
+  canvas {
+    display: block;
+    cursor: grab;
+    touch-action: none;
+  }
+  canvas.grabbing { cursor: grabbing; }
+
+  .canvas-legend {
+    position: absolute;
+    top: 10px; left: 10px;
+    background: rgba(15,17,23,0.82);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 0.72rem;
+    line-height: 1.9;
+    pointer-events: none;
+  }
+  .leg-dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+
+  /* Right panel */
+  .panel {
+    flex: 0 0 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .card h2 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+
+  /* Sliders */
+  .slider-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .slider-row {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .slider-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.82rem;
+  }
+  .slider-label .val {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--accent);
+    min-width: 40px;
+    text-align: right;
+  }
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 15px; height: 15px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+    cursor: grab;
+    transition: transform 0.12s;
+  }
+  input[type=range]:active::-webkit-slider-thumb { transform: scale(1.25); }
+
+  /* Ratios display */
+  .ratios-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+  .ratio-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 8px 6px;
+    text-align: center;
+  }
+  .ratio-box .label {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-bottom: 4px;
+    font-family: var(--font-mono);
+  }
+  .ratio-box .value {
+    font-size: 1.05rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: var(--green);
+  }
+  .ratio-box.highlight {
+    border-color: var(--green);
+    background: rgba(62,207,142,0.07);
+  }
+
+  /* Segments table */
+  .seg-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+  .seg-table td {
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .seg-table tr:last-child td { border-bottom: none; }
+  .seg-table td:first-child { color: var(--muted); font-family: var(--font-mono); }
+  .seg-table td:last-child { text-align: right; font-family: var(--font-mono); color: var(--text); }
+
+  /* Theory box */
+  .theory {
+    font-size: 0.83rem;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+  .theory strong { color: var(--text); }
+  .theory .formula {
+    margin: 8px 0;
+    padding: 7px 10px;
+    background: var(--surface);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 6px 6px 0;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--accent);
+  }
+
+  .badge-equal {
+    display: inline-block;
+    background: rgba(62,207,142,0.15);
+    border: 1px solid rgba(62,207,142,0.4);
+    color: var(--green);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 3px 8px;
+    border-radius: 20px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .badge-equal.bad {
+    background: rgba(255,80,80,0.13);
+    border-color: rgba(255,80,80,0.4);
+    color: #ff6060;
+  }
+
+  /* Drag hint */
+  .hint {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--muted);
+    padding: 6px 0 2px;
+  }
+
+  @media (max-width: 720px) {
+    .main-layout { flex-direction: column; }
+    .panel { flex: none; width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Teorema de <span>Tales</span></h1>
+  <p>Dos rectas paralelas cortando a dos rayos desde el mismo vértice — ¡las tres razones siempre coinciden!</p>
+</header>
+
+<div class="main-layout">
+
+  <!-- Canvas -->
+  <div class="canvas-wrap" id="canvasWrap">
+    <canvas id="canvas"></canvas>
+    <div class="canvas-legend">
+      <div><span class="leg-dot" style="background:var(--ray-r)"></span>Rayo <b>r</b></div>
+      <div><span class="leg-dot" style="background:var(--ray-s)"></span>Rayo <b>s</b></div>
+      <div><span class="leg-dot" style="background:var(--par1)"></span>Paralela <b>p₁</b> — arrastra</div>
+      <div><span class="leg-dot" style="background:var(--par2)"></span>Paralela <b>p₂</b> — arrastra</div>
+    </div>
+  </div>
+
+  <!-- Right panel -->
+  <div class="panel">
+
+    <!-- Controls -->
+    <div class="card">
+      <h2>Controles</h2>
+      <div class="slider-group">
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>Ángulo rayo <b style="color:var(--ray-r)">r</b></span>
+            <span class="val" id="valAngleR">30°</span>
+          </div>
+          <input type="range" id="sliderAngleR" min="5" max="85" value="30" step="1">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>Ángulo rayo <b style="color:var(--ray-s)">s</b></span>
+            <span class="val" id="valAngleS">80°</span>
+          </div>
+          <input type="range" id="sliderAngleS" min="5" max="85" value="80" step="1">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>Dirección paralelas</span>
+            <span class="val" id="valAngleP">0°</span>
+          </div>
+          <input type="range" id="sliderAngleP" min="-80" max="80" value="0" step="1">
+        </div>
+      </div>
+    </div>
+
+    <!-- Razones -->
+    <div class="card">
+      <h2>Las tres razones <span class="badge-equal" id="badgeEqual">✓ IGUALES</span></h2>
+      <div class="ratios-grid">
+        <div class="ratio-box highlight">
+          <div class="label">OA / OA′</div>
+          <div class="value" id="r1">—</div>
+        </div>
+        <div class="ratio-box highlight">
+          <div class="label">OB / OB′</div>
+          <div class="value" id="r2">—</div>
+        </div>
+        <div class="ratio-box highlight">
+          <div class="label">AB / A′B′</div>
+          <div class="value" id="r3">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Segmentos -->
+    <div class="card">
+      <h2>Longitud de segmentos</h2>
+      <table class="seg-table">
+        <tr><td>OA</td><td id="sOA">—</td></tr>
+        <tr><td>OA′</td><td id="sOAp">—</td></tr>
+        <tr><td>OB</td><td id="sOB">—</td></tr>
+        <tr><td>OB′</td><td id="sOBp">—</td></tr>
+        <tr><td>AB</td><td id="sAB">—</td></tr>
+        <tr><td>A′B′</td><td id="sApBp">—</td></tr>
+      </table>
+    </div>
+
+    <!-- Teoría -->
+    <div class="card">
+      <h2>¿Qué dice el teorema?</h2>
+      <div class="theory">
+        Si dos <strong>rectas paralelas</strong> cortan a dos rayos que parten del mismo punto <strong>O</strong>, los segmentos que se forman guardan siempre la misma proporción:
+        <div class="formula">OA / OA′ = OB / OB′ = AB / A′B′</div>
+        Mueve las paralelas o cambia los ángulos de los rayos… ¡la igualdad no desaparece nunca!
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<p class="hint">💡 Arrastra los puntos verdes y amarillos sobre los rayos para mover las paralelas</p>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+const state = {
+  // Angles in radians
+  angleR: 30 * Math.PI / 180,
+  angleS: 80 * Math.PI / 180,
+  angleP: 0 * Math.PI / 180,   // direction of parallels
+
+  // Offsets along normal: how far each parallel is from O
+  // "t" is signed distance along the normal to the parallel direction
+  t1: 90,   // in canvas units (pixels relative to O)
+  t2: 190,
+
+  // Canvas dimensions
+  W: 0, H: 0,
+  // Origin in canvas coords
+  Ox: 0, Oy: 0,
+
+  dragging: null,  // 'p1' | 'p2' | null
+  dragStart: null,
+};
+
+// ─── Canvas setup ────────────────────────────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const wrap = document.getElementById('canvasWrap');
+
+function resize() {
+  const rect = wrap.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  state.W = rect.width;
+  state.H = Math.max(420, rect.width * 0.68);
+  canvas.width = state.W * dpr;
+  canvas.height = state.H * dpr;
+  canvas.style.width = state.W + 'px';
+  canvas.style.height = state.H + 'px';
+  ctx.scale(dpr, dpr);
+  state.Ox = state.W * 0.18;
+  state.Oy = state.H * 0.85;
+  draw();
+}
+window.addEventListener('resize', resize);
+
+// ─── Math core ───────────────────────────────────────────────────────────────
+/**
+ * Compute intersection of ray (from O, direction angle rayAngle)
+ * with parallel line at signed normal-offset t
+ * (parallel direction = angleP, normal = angleP + 90°)
+ *
+ * Returns {pt, lambda} where pt is canvas coords and lambda > 0.
+ */
+function rayParallelIntersection(rayAngle, t) {
+  const phi = state.angleP;
+  // Parallel direction vector
+  const dpx = Math.cos(phi), dpy = Math.sin(phi);
+  // Normal vector (points "away" from O in the perpendicular sense)
+  const nx = -Math.sin(phi), ny = Math.cos(phi);
+
+  // Ray direction
+  const drx = Math.cos(rayAngle), dry = Math.sin(rayAngle);
+
+  // We solve: lambda*dr = t*n + mu*dp
+  // Cross product (2D): det = dr × dp
+  const det = drx * dpy - dpy * drx;
+  // Wait, let me redo: det = drx*dpy - dry*dpx
+  const det2 = drx * dpy - dry * dpx;
+
+  if (Math.abs(det2) < 1e-9) return null;
+
+  // lambda = (t * (nx*dpy - ny*dpx)) / det2
+  // Actually: lambda = (t*n × dp) / (dr × dp)
+  // n × dp = nx*dpy - ny*dpx
+  const nCrossDP = nx * dpy - ny * dpx;
+  const lambda = (t * nCrossDP) / det2;
+
+  if (lambda < 0.01) return null;
+
+  return {
+    pt: { x: state.Ox + lambda * drx, y: state.Oy - lambda * dry },
+    lambda
+  };
+}
+
+function dist(a, b) {
+  return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+}
+
+function computeGeometry() {
+  const A  = rayParallelIntersection(state.angleR, state.t1);
+  const B  = rayParallelIntersection(state.angleR, state.t2);
+  const Ap = rayParallelIntersection(state.angleS, state.t1);
+  const Bp = rayParallelIntersection(state.angleS, state.t2);
+
+  return { A, B, Ap, Bp };
+}
+
+// ─── Drawing ─────────────────────────────────────────────────────────────────
+const COLORS = {
+  rayR:  '#5b8fff',
+  rayS:  '#ff6b9d',
+  par1:  '#3ecf8e',
+  par2:  '#f6c445',
+  seg:   'rgba(180,190,220,0.55)',
+  O:     '#ffffff',
+};
+
+function drawDashedLine(x1, y1, x2, y2, color, width = 1.5) {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawLine(x1, y1, x2, y2, color, width = 2, dash = []) {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.setLineDash(dash);
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawCircle(x, y, r, fill, stroke, sw = 2) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = fill;
+  ctx.fill();
+  if (stroke) {
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = sw;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawLabel(text, x, y, color, align = 'left', size = 13) {
+  ctx.save();
+  ctx.font = `bold ${size}px 'Segoe UI', sans-serif`;
+  ctx.fillStyle = color;
+  ctx.textAlign = align;
+  ctx.textBaseline = 'middle';
+  // subtle shadow for readability
+  ctx.shadowColor = 'rgba(0,0,0,0.7)';
+  ctx.shadowBlur = 5;
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+
+/**
+ * Extend a parallel line across the full canvas width.
+ * The line passes through (px, py) with direction (cos phi, -sin phi) [canvas coords].
+ */
+function parallelLineEndpoints(t) {
+  const phi = state.angleP;
+  const nx = -Math.sin(phi), ny = Math.cos(phi);
+  // Point on line: O + t*(nx, -ny) in canvas coords
+  const px = state.Ox + t * nx;
+  const py = state.Oy - t * ny;
+  // Direction in canvas: (cos phi, -sin phi)
+  const dx = Math.cos(phi), dy = -Math.sin(phi);
+
+  // Clip to canvas: find large enough parameter
+  const T = Math.max(state.W, state.H) * 2;
+  return {
+    x1: px - T * dx, y1: py - T * dy,
+    x2: px + T * dx, y2: py + T * dy,
+  };
+}
+
+function draw() {
+  const { W, H, Ox, Oy } = state;
+  ctx.clearRect(0, 0, W, H);
+
+  // Background grid (subtle)
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 40) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += 40) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+  ctx.restore();
+
+  const geo = computeGeometry();
+  const { A, B, Ap, Bp } = geo;
+
+  if (!A || !B || !Ap || !Bp) {
+    ctx.save();
+    ctx.fillStyle = '#ff6060';
+    ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('⚠ Ajusta los ángulos para que las paralelas corten ambos rayos', W/2, H/2);
+    ctx.restore();
+    return;
+  }
+
+  // ── Draw rays (extended) ──
+  const rayLen = Math.max(W, H) * 1.5;
+  // Ray r
+  drawLine(
+    Ox, Oy,
+    Ox + rayLen * Math.cos(state.angleR), Oy - rayLen * Math.sin(state.angleR),
+    COLORS.rayR, 2, [8, 5]
+  );
+  // Ray s
+  drawLine(
+    Ox, Oy,
+    Ox + rayLen * Math.cos(state.angleS), Oy - rayLen * Math.sin(state.angleS),
+    COLORS.rayS, 2, [8, 5]
+  );
+
+  // ── Draw parallels (extended lines) ──
+  const p1 = parallelLineEndpoints(state.t1);
+  const p2 = parallelLineEndpoints(state.t2);
+  drawLine(p1.x1, p1.y1, p1.x2, p1.y2, COLORS.par1, 2);
+  drawLine(p2.x1, p2.y1, p2.x2, p2.y2, COLORS.par2, 2);
+
+  // Labels p₁ p₂ near right edge
+  drawLabel('p₁', Math.min(p1.x2, W - 20), Math.max(10, Math.min(p1.y2 + ((p1.x2 - p1.x1) > 0 ? 0 : 0), H - 10)), COLORS.par1, 'right', 12);
+  drawLabel('p₂', Math.min(p2.x2, W - 20), Math.max(10, Math.min(p2.y2, H - 10)), COLORS.par2, 'right', 12);
+
+  // ── Draw the 6 special segments ──
+  const O = { x: Ox, y: Oy };
+
+  // OA and OB (on ray r) — solid
+  drawLine(O.x, O.y, A.pt.x, A.pt.y, COLORS.rayR, 3);
+  drawLine(A.pt.x, A.pt.y, B.pt.x, B.pt.y, COLORS.rayR, 3);
+
+  // OA' and OB' (on ray s) — solid
+  drawLine(O.x, O.y, Ap.pt.x, Ap.pt.y, COLORS.rayS, 3);
+  drawLine(Ap.pt.x, Ap.pt.y, Bp.pt.x, Bp.pt.y, COLORS.rayS, 3);
+
+  // AB and A'B' (cross-segments) — dashed
+  drawDashedLine(A.pt.x, A.pt.y, Ap.pt.x, Ap.pt.y, COLORS.par1, 1.5);
+  drawDashedLine(B.pt.x, B.pt.y, Bp.pt.x, Bp.pt.y, COLORS.par2, 1.5);
+
+  // ── Draggable handles on the parallels (midpoint between the two intersection pts) ──
+  const handle1x = (A.pt.x + Ap.pt.x) / 2;
+  const handle1y = (A.pt.y + Ap.pt.y) / 2;
+  const handle2x = (B.pt.x + Bp.pt.x) / 2;
+  const handle2y = (B.pt.y + Bp.pt.y) / 2;
+
+  drawCircle(handle1x, handle1y, 11, COLORS.par1, '#0f1117', 2);
+  drawCircle(handle2x, handle2y, 11, COLORS.par2, '#0f1117', 2);
+  // Drag icon
+  ctx.save();
+  ctx.fillStyle = '#0f1117';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('⇕', handle1x, handle1y);
+  ctx.fillText('⇕', handle2x, handle2y);
+  ctx.restore();
+
+  // ── Points A, B, A', B' ──
+  drawCircle(A.pt.x,  A.pt.y,  6, COLORS.rayR, '#fff', 1.5);
+  drawCircle(B.pt.x,  B.pt.y,  6, COLORS.rayR, '#fff', 1.5);
+  drawCircle(Ap.pt.x, Ap.pt.y, 6, COLORS.rayS, '#fff', 1.5);
+  drawCircle(Bp.pt.x, Bp.pt.y, 6, COLORS.rayS, '#fff', 1.5);
+
+  // Labels
+  const off = 12;
+  drawLabel('A',  A.pt.x + off,  A.pt.y - off/2,  COLORS.rayR);
+  drawLabel('B',  B.pt.x + off,  B.pt.y - off/2,  COLORS.rayR);
+  drawLabel('A′', Ap.pt.x - off*2, Ap.pt.y - off/2, COLORS.rayS);
+  drawLabel('B′', Bp.pt.x - off*2, Bp.pt.y - off/2, COLORS.rayS);
+
+  // ── Origin O ──
+  drawCircle(Ox, Oy, 8, '#fff', '#0f1117', 2);
+  drawLabel('O', Ox - 14, Oy - 5, '#ffffff');
+
+  // Ray labels at the tips
+  const tipR_x = Ox + 180 * Math.cos(state.angleR);
+  const tipR_y = Oy - 180 * Math.sin(state.angleR);
+  const tipS_x = Ox + 180 * Math.cos(state.angleS);
+  const tipS_y = Oy - 180 * Math.sin(state.angleS);
+  drawLabel('r', tipR_x + 8, tipR_y, COLORS.rayR, 'left', 14);
+  drawLabel('s', tipS_x + 8, tipS_y, COLORS.rayS, 'left', 14);
+
+  // ── Update numbers in panel ──
+  updatePanel(geo);
+}
+
+// ─── Panel update ─────────────────────────────────────────────────────────────
+function fmt(v) { return v.toFixed(1); }
+function fmtRatio(v) { return v.toFixed(3); }
+
+function updatePanel(geo) {
+  const { A, B, Ap, Bp } = geo;
+  if (!A || !B || !Ap || !Bp) {
+    ['r1','r2','r3'].forEach(id => document.getElementById(id).textContent = '—');
+    ['sOA','sOAp','sOB','sOBp','sAB','sApBp'].forEach(id => document.getElementById(id).textContent = '—');
+    document.getElementById('badgeEqual').textContent = '⚠ Sin datos';
+    document.getElementById('badgeEqual').className = 'badge-equal bad';
+    return;
+  }
+
+  const O = { x: state.Ox, y: state.Oy };
+  const scale = 0.1; // pixels → "unidades" for display (cosmetic only)
+
+  const OA   = dist(O, A.pt)   * scale;
+  const OB   = dist(O, B.pt)   * scale;
+  const OAp  = dist(O, Ap.pt)  * scale;
+  const OBp  = dist(O, Bp.pt)  * scale;
+  const AB   = dist(A.pt, B.pt) * scale;
+  const ApBp = dist(Ap.pt, Bp.pt) * scale;
+
+  // Use lambda ratios for perfect precision
+  const rat1 = A.lambda / Ap.lambda;
+  const rat2 = B.lambda / Bp.lambda;
+  const rat3 = (B.lambda - A.lambda) / (Bp.lambda - Ap.lambda);
+
+  document.getElementById('r1').textContent = fmtRatio(rat1);
+  document.getElementById('r2').textContent = fmtRatio(rat2);
+  document.getElementById('r3').textContent = fmtRatio(rat3);
+
+  document.getElementById('sOA').textContent   = fmt(OA);
+  document.getElementById('sOAp').textContent  = fmt(OAp);
+  document.getElementById('sOB').textContent   = fmt(OB);
+  document.getElementById('sOBp').textContent  = fmt(OBp);
+  document.getElementById('sAB').textContent   = fmt(AB);
+  document.getElementById('sApBp').textContent = fmt(ApBp);
+
+  const allEqual = Math.abs(rat1 - rat2) < 0.001 && Math.abs(rat1 - rat3) < 0.001;
+  const badge = document.getElementById('badgeEqual');
+  if (allEqual) {
+    badge.textContent = '✓ IGUALES';
+    badge.className = 'badge-equal';
+  } else {
+    badge.textContent = '✗ Error';
+    badge.className = 'badge-equal bad';
+  }
+}
+
+// ─── Sliders ──────────────────────────────────────────────────────────────────
+function bindSlider(id, valId, suffix, onChange) {
+  const slider = document.getElementById(id);
+  const valEl  = document.getElementById(valId);
+  slider.addEventListener('input', () => {
+    const v = parseFloat(slider.value);
+    valEl.textContent = v + suffix;
+    onChange(v);
+    draw();
+  });
+}
+
+bindSlider('sliderAngleR', 'valAngleR', '°', v => {
+  state.angleR = v * Math.PI / 180;
+  // Ensure R < S
+  if (state.angleR >= state.angleS - 0.05) {
+    state.angleR = state.angleS - 0.05;
+  }
+});
+bindSlider('sliderAngleS', 'valAngleS', '°', v => {
+  state.angleS = v * Math.PI / 180;
+  if (state.angleS <= state.angleR + 0.05) {
+    state.angleS = state.angleR + 0.05;
+  }
+});
+bindSlider('sliderAngleP', 'valAngleP', '°', v => {
+  state.angleP = v * Math.PI / 180;
+});
+
+// ─── Drag interactions ────────────────────────────────────────────────────────
+const HANDLE_RADIUS = 18;
+
+function getCanvasXY(e) {
+  const rect = canvas.getBoundingClientRect();
+  const src = e.touches ? e.touches[0] : e;
+  return { x: src.clientX - rect.left, y: src.clientY - rect.top };
+}
+
+/**
+ * Convert a canvas-coord point to "t" offset (signed normal distance from O).
+ * Inverse of: px = Ox + t*nx, py = Oy - t*ny
+ * → t = (px - Ox)*nx + (-(py - Oy))*ny  [dot product with normal in math coords]
+ */
+function pointToT(x, y) {
+  const phi = state.angleP;
+  const nx = -Math.sin(phi), ny = Math.cos(phi);
+  // Math coords relative to O: (dx, dy) = (x - Ox, -(y - Oy))
+  const dx = x - state.Ox;
+  const dy = -(y - state.Oy);
+  return dx * nx + dy * ny;
+}
+
+function getHandlePositions() {
+  const geo = computeGeometry();
+  if (!geo.A || !geo.Ap) return null;
+  return {
+    h1: { x: (geo.A.pt.x + geo.Ap.pt.x) / 2, y: (geo.A.pt.y + geo.Ap.pt.y) / 2 },
+    h2: { x: (geo.B.pt.x + geo.Bp.pt.x) / 2, y: (geo.B.pt.y + geo.Bp.pt.y) / 2 },
+  };
+}
+
+function onPointerDown(e) {
+  e.preventDefault();
+  const { x, y } = getCanvasXY(e);
+  const handles = getHandlePositions();
+  if (!handles) return;
+
+  if (dist({ x, y }, handles.h1) < HANDLE_RADIUS) {
+    state.dragging = 'p1';
+    canvas.classList.add('grabbing');
+  } else if (dist({ x, y }, handles.h2) < HANDLE_RADIUS) {
+    state.dragging = 'p2';
+    canvas.classList.add('grabbing');
+  }
+}
+
+function onPointerMove(e) {
+  if (!state.dragging) return;
+  e.preventDefault();
+  const { x, y } = getCanvasXY(e);
+  const t = pointToT(x, y);
+  const tMin = 30, tMax = Math.max(state.W, state.H) * 0.9;
+
+  if (state.dragging === 'p1') {
+    state.t1 = Math.max(tMin, Math.min(t, state.t2 - 30));
+  } else {
+    state.t2 = Math.max(state.t1 + 30, Math.min(t, tMax));
+  }
+  draw();
+}
+
+function onPointerUp() {
+  state.dragging = null;
+  canvas.classList.remove('grabbing');
+}
+
+canvas.addEventListener('mousedown',  onPointerDown);
+canvas.addEventListener('mousemove',  onPointerMove);
+canvas.addEventListener('mouseup',    onPointerUp);
+canvas.addEventListener('mouseleave', onPointerUp);
+canvas.addEventListener('touchstart', onPointerDown, { passive: false });
+canvas.addEventListener('touchmove',  onPointerMove, { passive: false });
+canvas.addEventListener('touchend',   onPointerUp);
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+resize();
+</script>
+</body>
+</html>
