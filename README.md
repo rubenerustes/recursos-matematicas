@@ -1,4 +1,4 @@
-# Recursos interactivos de Matemáticas (ESO)
+# Recursos interactivos de Matemáticas (3º ESO)
 
 Colección de recursos interactivos en HTML diseñados para apoyar la 
 enseñanza y el aprendizaje de las matemáticas en Educación Secundaria para 3º ESO.
