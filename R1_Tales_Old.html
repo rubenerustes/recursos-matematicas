@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teorema de Tales</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f0f4f8;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:16px}
+h1{font-size:1.35rem;color:#1a2b4a;margin-bottom:4px;text-align:center}
+.sub{font-size:.9rem;color:#5a6b85;margin-bottom:14px;text-align:center;max-width:700px;line-height:1.5}
+.wrap{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;align-items:flex-start;width:100%;max-width:980px}
+canvas{background:#fff;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.1);cursor:grab;touch-action:none}
+canvas:active{cursor:grabbing}
+.panel{background:#fff;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.1);padding:18px;min-width:270px;flex:1}
+.panel h2{font-size:.92rem;color:#1a2b4a;margin-bottom:10px;border-bottom:2px solid #eef3fb;padding-bottom:5px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.seg{background:#f7f9fd;border-radius:8px;padding:8px 10px;text-align:center}
+.seg .lbl{font-size:.78rem;color:#5a6b85;margin-bottom:2px}
+.seg .val{font-size:1rem;font-weight:bold}
+.bl{color:#2f5fb0}.or{color:#d2802b}.gr{color:#1f6e44}
+.rbox{padding:12px;border-radius:10px;text-align:center;background:#e3f3ea;border:1.5px solid #2f8f5b;margin-bottom:10px}
+.rl{font-size:.95rem;font-weight:bold;color:#1f6e44;font-family:'Cambria Math','Times New Roman',serif;margin-bottom:4px}
+.rv{font-size:1.1rem;font-weight:bold;color:#1f6e44}
+.rc{font-size:.8rem;color:#1f6e44;margin-top:4px}
+.tbox{background:#eef3fb;border-left:4px solid #2f5fb0;border-radius:0 8px 8px 0;padding:9px 13px;font-size:.84rem;color:#1a2b4a;line-height:1.7}
+.hint{margin-top:10px;font-size:.79rem;color:#8a97ad;line-height:1.5}
+</style>
+</head>
+<body>
+<h1>Teorema de Tales</h1>
+<p class="sub">Desde O salen dos rayos. La paralela 1 (verde) los corta en <strong>A</strong> y <strong>A′</strong>; la paralela 2 (naranja) los corta en <strong>B</strong> y <strong>B′</strong>. Arrastra las paralelas o el vértice O y comprueba que la proporción se mantiene.</p>
+<div class="wrap">
+<canvas id="cv" width="550" height="460"></canvas>
+<div class="panel">
+  <h2>Longitudes de los segmentos</h2>
+  <div class="grid2">
+    <div class="seg"><div class="lbl">OA</div><div class="val bl" id="vOA">—</div></div>
+    <div class="seg"><div class="lbl">OA′</div><div class="val bl" id="vOAp">—</div></div>
+    <div class="seg"><div class="lbl">OB</div><div class="val or" id="vOB">—</div></div>
+    <div class="seg"><div class="lbl">OB′</div><div class="val or" id="vOBp">—</div></div>
+    <div class="seg"><div class="lbl">AB</div><div class="val gr" id="vAB">—</div></div>
+    <div class="seg"><div class="lbl">A′B′</div><div class="val gr" id="vABp">—</div></div>
+  </div>
+  <div class="rbox">
+    <div class="rl">OA / OA′ = OB / OB′ = AB / A′B′</div>
+    <div class="rv"><span id="r1">—</span> = <span id="r2">—</span> = <span id="r3">—</span></div>
+    <div class="rc" id="rchk">✓ Las tres razones coinciden siempre</div>
+  </div>
+  <div class="tbox">
+    <strong>Teorema de Tales:</strong> si desde O trazamos dos rayos y los cortamos con dos rectas paralelas, los segmentos que determinan son proporcionales:<br>
+    <div style="text-align:center;margin-top:6px;font-family:'Cambria Math',serif;font-size:.95rem">
+      OA / OA′ &nbsp;=&nbsp; OB / OB′ &nbsp;=&nbsp; AB / A′B′
+    </div>
+  </div>
+  <p class="hint">💡 Arrastra los círculos de las paralelas para moverlas. También puedes mover el vértice O.</p>
+</div>
+</div>
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+
+// Two rays from O with fixed directions.
+// Parallel 1 defined by t1 (parameter along ray1: point = O + t1*dir1)
+// Parallel 2 defined by t2 (parameter along ray1: point = O + t2*dir1), t2 > t1
+// For each t, the parallel through ray1(t) cuts ray2 at some point.
+// Direction of parallels: FIXED vector d, same for both → truly parallel always.
+// d is chosen as a nice angle relative to the two rays.
+
+let st={
+  O:{x:85, y:310},
+  // ray1 direction (upper ray)
+  dir1:{x:420, y:-190},
+  // ray2 direction (lower ray)  
+  dir2:{x:420, y:100},
+  t1:0.30,   // first parallel at t1 along ray1
+  t2:0.68,   // second parallel at t2 along ray1
+};
+
+// Parallel direction: fixed as perpendicular to average of the two ray unit vectors
+// Recomputed only when rays change (not implemented here — rays are fixed)
+function getParallelDir(){
+  const d1=st.dir1, d2=st.dir2;
+  const n1=Math.hypot(d1.x,d1.y), n2=Math.hypot(d2.x,d2.y);
+  const u1={x:d1.x/n1,y:d1.y/n1}, u2={x:d2.x/n2,y:d2.y/n2};
+  // bisector
+  const bx=u1.x+u2.x, by=u1.y+u2.y;
+  // perpendicular to bisector = parallel direction
+  return {x:-by, y:bx};
+}
+
+// Intersection of line (P + t*u) with line (Q + s*v): returns point
+function lineIntersect(P,u,Q,v){
+  const den=u.x*v.y - u.y*v.x;
+  if(Math.abs(den)<1e-10) return null;
+  const t=((Q.x-P.x)*v.y-(Q.y-P.y)*v.x)/den;
+  return {x:P.x+t*u.x, y:P.y+t*u.y};
+}
+
+function getPoints(){
+  const {O,dir1,dir2,t1,t2}=st;
+  const d=getParallelDir();
+  // A = O + t1*dir1
+  const A={x:O.x+t1*dir1.x, y:O.y+t1*dir1.y};
+  // B = O + t2*dir1
+  const B={x:O.x+t2*dir1.x, y:O.y+t2*dir1.y};
+  // A' = intersection of parallel through A with ray2
+  const Ap=lineIntersect(A,d,O,dir2);
+  // B' = intersection of parallel through B with ray2
+  const Bp=lineIntersect(B,d,O,dir2);
+  return {O,A,B,Ap,Bp,d};
+}
+
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+const K=11;
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // subtle grid
+  ctx.strokeStyle='#eef1f5';ctx.lineWidth=1;
+  for(let y=0;y<=H;y+=45){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  const {O,A,B,Ap,Bp,d}=getPoints();
+  if(!Ap||!Bp) return;
+
+  // extend rays past B and B'
+  function extPt(from,dir,extra){
+    const l=Math.hypot(dir.x,dir.y);
+    return {x:from.x+dir.x/l*(Math.hypot(dir.x,dir.y)+extra), y:from.y+dir.y/l*(Math.hypot(dir.x,dir.y)+extra)};
+  }
+  const ray1end={x:O.x+st.dir1.x+30*st.dir1.x/Math.hypot(st.dir1.x,st.dir1.y),
+                 y:O.y+st.dir1.y+30*st.dir1.y/Math.hypot(st.dir1.x,st.dir1.y)};
+  const ray2end={x:O.x+st.dir2.x+30*st.dir2.x/Math.hypot(st.dir2.x,st.dir2.y),
+                 y:O.y+st.dir2.y+30*st.dir2.y/Math.hypot(st.dir2.x,st.dir2.y)};
+
+  // draw rays
+  ctx.strokeStyle='#1a2b4a';ctx.lineWidth=2;ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(O.x,O.y);ctx.lineTo(ray1end.x,ray1end.y);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(O.x,O.y);ctx.lineTo(ray2end.x,ray2end.y);ctx.stroke();
+  // ray labels
+  ctx.fillStyle='#1a2b4a';ctx.font='italic bold 14px Arial';
+  ctx.fillText('r',ray1end.x+4,ray1end.y+4);
+  ctx.fillText('s',ray2end.x+4,ray2end.y+4);
+
+  // draw parallels (extended both sides)
+  function drawParallel(P,color,label){
+    const dn=Math.hypot(d.x,d.y);
+    const du={x:d.x/dn,y:d.y/dn};
+    const ext=180;
+    ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.setLineDash([8,5]);
+    ctx.beginPath();
+    ctx.moveTo(P.x-du.x*ext,P.y-du.y*ext);
+    ctx.lineTo(P.x+du.x*ext,P.y+du.y*ext);
+    ctx.stroke();ctx.setLineDash([]);
+  }
+  drawParallel(A,'#2f8f5b','p₁');
+  drawParallel(B,'#d2802b','p₂');
+
+  // highlight segments: OA and OA' in blue, OB and OB' in orange, AB and A'B' in green
+  function seg(p,q,color,w){
+    ctx.strokeStyle=color;ctx.lineWidth=w||5;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();
+    ctx.lineCap='butt';
+  }
+  seg(O,A,'#2f5fb0');       // OA blue
+  seg(O,Ap,'#2f5fb0');      // OA' blue
+  seg(A,B,'#2f8f5b');       // AB green
+  seg(Ap,Bp,'#2f8f5b');     // A'B' green
+  // OB and OB' dashed orange (overlapping the blue+green)
+  ctx.strokeStyle='#d2802b';ctx.lineWidth=2.5;ctx.setLineDash([5,4]);
+  ctx.beginPath();ctx.moveTo(O.x,O.y);ctx.lineTo(B.x,B.y);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(O.x,O.y);ctx.lineTo(Bp.x,Bp.y);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // segment mid-labels
+  function midLabel(p,q,text,color,ox,oy){
+    const mx=(p.x+q.x)/2,my=(p.y+q.y)/2;
+    ctx.fillStyle=color;ctx.font='bold 12px Arial';
+    ctx.fillText(text,mx+ox,my+oy);
+  }
+  midLabel(O,A,'OA','#2f5fb0',-26,0);
+  midLabel(O,Ap,'OA′','#2f5fb0',4,0);
+  midLabel(A,B,'OB','#d2802b',-24,-4);
+  midLabel(Ap,Bp,'OB′','#d2802b',4,-4);
+  midLabel(A,B,'AB','#2f8f5b',6,10);
+  midLabel(Ap,Bp,"A′B′",'#2f8f5b',6,12);
+
+  // intersection points
+  function dot(p,color,r){
+    ctx.fillStyle=color||'#fff';ctx.beginPath();ctx.arc(p.x,p.y,r||5,0,2*Math.PI);ctx.fill();
+    ctx.strokeStyle='#1a2b4a';ctx.lineWidth=1.5;ctx.stroke();
+  }
+  dot(A,'#fff');dot(B,'#fff');dot(Ap,'#fff');dot(Bp,'#fff');
+  ctx.fillStyle='#1a2b4a';ctx.font='bold 14px Arial';
+  ctx.fillText('A',A.x+5,A.y-8);
+  ctx.fillText('B',B.x+5,B.y-8);
+  ctx.fillText('A′',Ap.x-22,Ap.y+14);
+  ctx.fillText('B′',Bp.x-24,Bp.y+14);
+
+  // O vertex
+  ctx.fillStyle='#1a2b4a';ctx.beginPath();ctx.arc(O.x,O.y,7,0,2*Math.PI);ctx.fill();
+  ctx.fillStyle='#fff';ctx.font='bold 13px Arial';ctx.fillText('O',O.x-5,O.y+5);
+
+  // drag handles for parallels (midpoint between intersection points)
+  function handle(p,q,color){
+    const mx=(p.x+q.x)/2,my=(p.y+q.y)/2;
+    ctx.fillStyle=color;ctx.strokeStyle='#fff';ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.arc(mx,my,10,0,2*Math.PI);ctx.fill();ctx.stroke();
+  }
+  handle(A,Ap,'#2f8f5b');
+  handle(B,Bp,'#d2802b');
+
+  // update panel
+  const OA=dist(O,A),OAp=dist(O,Ap),OB=dist(O,B),OBp=dist(O,Bp),AB=dist(A,B),ABp=dist(Ap,Bp);
+  document.getElementById('vOA').textContent=(OA/K).toFixed(2)+' u';
+  document.getElementById('vOAp').textContent=(OAp/K).toFixed(2)+' u';
+  document.getElementById('vOB').textContent=(OB/K).toFixed(2)+' u';
+  document.getElementById('vOBp').textContent=(OBp/K).toFixed(2)+' u';
+  document.getElementById('vAB').textContent=(AB/K).toFixed(2)+' u';
+  document.getElementById('vABp').textContent=(ABp/K).toFixed(2)+' u';
+  const r1v=OA/OAp,r2v=OB/OBp,r3v=AB/ABp;
+  document.getElementById('r1').textContent=r1v.toFixed(3);
+  document.getElementById('r2').textContent=r2v.toFixed(3);
+  document.getElementById('r3').textContent=r3v.toFixed(3);
+  const ok=Math.max(Math.abs(r1v-r2v),Math.abs(r1v-r3v))<0.005;
+  const chk=document.getElementById('rchk');
+  chk.textContent=ok?'✓ Las tres razones coinciden siempre':'⚠ Diferencia detectada — comprueba la geometría';
+  chk.style.color=ok?'#1f6e44':'#c0392b';
+}
+
+// dragging
+let drag=null;
+function getPos(e){const r=cv.getBoundingClientRect();const t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top};}
+function handles(){
+  const {O,A,B,Ap,Bp}=getPoints();
+  return[
+    {id:'p1',x:(A.x+Ap.x)/2,y:(A.y+Ap.y)/2},
+    {id:'p2',x:(B.x+Bp.x)/2,y:(B.y+Bp.y)/2},
+    {id:'O', x:O.x,y:O.y},
+  ];
+}
+function onDown(e){e.preventDefault();const p=getPos(e);for(const h of handles()){if(Math.hypot(p.x-h.x,p.y-h.y)<18){drag=h.id;return;}}}
+function onMove(e){
+  if(!drag)return;e.preventDefault();const p=getPos(e);
+  if(drag==='p1'||drag==='p2'){
+    // project mouse onto ray1 to get t
+    const d1=st.dir1,len2=d1.x*d1.x+d1.y*d1.y;
+    let t=((p.x-st.O.x)*d1.x+(p.y-st.O.y)*d1.y)/len2;
+    t=Math.max(0.08,Math.min(0.95,t));
+    if(drag==='p1') st.t1=Math.min(t,st.t2-0.12);
+    else             st.t2=Math.max(t,st.t1+0.12);
+  } else if(drag==='O'){
+    st.O.x=Math.max(30,Math.min(160,p.x));
+    st.O.y=Math.max(120,Math.min(H-30,p.y));
+  }
+  draw();
+}
+function onUp(){drag=null;}
+cv.addEventListener('mousedown',onDown);cv.addEventListener('mousemove',onMove);window.addEventListener('mouseup',onUp);
+cv.addEventListener('touchstart',onDown,{passive:false});cv.addEventListener('touchmove',onMove,{passive:false});cv.addEventListener('touchend',onUp);
+draw();
+</script>
+</body>
+</html>
